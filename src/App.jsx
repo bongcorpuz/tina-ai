@@ -1,9 +1,19 @@
+// FILE: App.js
+
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || "")
     .replace(/\/$/, "");
+
+const DEFAULT_WELCOME_MESSAGE = {
+  role: "tina",
+  content:
+    "Hi, I’m TINA. Ask me about Philippine tax matters based on the indexed knowledge base.",
+  sources: [],
+  fallbackReferences: []
+};
 
 function App() {
   const [username, setUsername] = useState("");
@@ -21,6 +31,9 @@ function App() {
 
   const [token, setToken] = useState(localStorage.getItem("tinaToken") || "");
   const [role, setRole] = useState(localStorage.getItem("tinaRole") || "");
+  const [conversationId, setConversationId] = useState(
+    localStorage.getItem("tinaConversationId") || ""
+  );
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("tinaUser") || "{}");
@@ -31,18 +44,11 @@ function App() {
 
   const [loginError, setLoginError] = useState("");
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "tina",
-      content:
-        "Hi, I’m TINA. Ask me about Philippine tax matters based on the indexed knowledge base.",
-      sources: [],
-      fallbackReferences: []
-    }
-  ]);
+  const [messages, setMessages] = useState([DEFAULT_WELCOME_MESSAGE]);
 
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
+  const [bootstrappingConversation, setBootstrappingConversation] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -51,6 +57,114 @@ function App() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (!token || conversationId || bootstrappingConversation) return;
+
+    void ensureConversation(token);
+  }, [token, conversationId, bootstrappingConversation]);
+
+  async function createConversationWithToken(authToken) {
+    const res = await fetch(`${API_BASE}/conversations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify({
+        title: "New Conversation"
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data?.conversation?.id) {
+      throw new Error(data?.error || "Failed to create conversation.");
+    }
+
+    return data.conversation.id;
+  }
+
+  async function loadConversationMessages(authToken, id) {
+    if (!id) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/conversations/${id}/messages`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${authToken}`
+        }
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !Array.isArray(data?.messages)) {
+        return;
+      }
+
+      if (data.messages.length === 0) {
+        setMessages([DEFAULT_WELCOME_MESSAGE]);
+        return;
+      }
+
+      const mapped = data.messages.map((msg) => ({
+        role: msg.role === "assistant" ? "tina" : "user",
+        content: msg.content || "",
+        sources: [],
+        fallbackReferences: []
+      }));
+
+      setMessages(mapped);
+    } catch {
+      setMessages([DEFAULT_WELCOME_MESSAGE]);
+    }
+  }
+
+  async function ensureConversation(authToken) {
+    if (!authToken) return "";
+
+    setBootstrappingConversation(true);
+
+    try {
+      let activeConversationId = localStorage.getItem("tinaConversationId") || "";
+
+      if (!activeConversationId) {
+        activeConversationId = await createConversationWithToken(authToken);
+        localStorage.setItem("tinaConversationId", activeConversationId);
+      }
+
+      setConversationId(activeConversationId);
+      await loadConversationMessages(authToken, activeConversationId);
+
+      return activeConversationId;
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "tina",
+          content:
+            error?.message ||
+            "TINA could not initialize the conversation session.",
+          sources: [],
+          fallbackReferences: []
+        }
+      ]);
+      return "";
+    } finally {
+      setBootstrappingConversation(false);
+    }
+  }
+
+  async function resetConversation(authToken) {
+    localStorage.removeItem("tinaConversationId");
+    setConversationId("");
+    setMessages([DEFAULT_WELCOME_MESSAGE]);
+
+    if (!authToken) return "";
+
+    const newConversationId = await ensureConversation(authToken);
+    return newConversationId;
+  }
 
   const login = async () => {
     setLoginError("");
@@ -80,12 +194,17 @@ function App() {
       localStorage.setItem("tinaToken", data.token);
       localStorage.setItem("tinaRole", data.role || "user");
       localStorage.setItem("tinaUser", JSON.stringify(userProfile));
+      localStorage.removeItem("tinaConversationId");
 
       setToken(data.token);
       setRole(data.role || "user");
       setCurrentUser(userProfile);
+      setConversationId("");
+      setMessages([DEFAULT_WELCOME_MESSAGE]);
       setUsername("");
       setPassword("");
+
+      await ensureConversation(data.token);
     } catch {
       setLoginError("Cannot connect to TINA backend.");
     }
@@ -152,46 +271,96 @@ function App() {
     localStorage.removeItem("tinaToken");
     localStorage.removeItem("tinaRole");
     localStorage.removeItem("tinaUser");
+    localStorage.removeItem("tinaConversationId");
 
     setToken("");
     setRole("");
+    setConversationId("");
     setCurrentUser({});
     setShowProfileMenu(false);
     setShowProfileModal(false);
-
-    setMessages([
-      {
-        role: "tina",
-        content:
-          "Hi, I’m TINA. Ask me about Philippine tax matters based on the indexed knowledge base.",
-        sources: [],
-        fallbackReferences: []
-      }
-    ]);
+    setMessages([DEFAULT_WELCOME_MESSAGE]);
   };
 
   const askTina = async () => {
     const trimmed = question.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || loading || !token) return;
 
-    setMessages(prev => [...prev, { role: "user", content: trimmed }]);
+    setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setQuestion("");
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE}/ask`, {
+      let activeConversationId = conversationId;
+
+      if (!activeConversationId) {
+        activeConversationId = await ensureConversation(token);
+      }
+
+      if (!activeConversationId) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "tina",
+            content: "TINA could not initialize a conversation session.",
+            sources: [],
+            fallbackReferences: []
+          }
+        ]);
+        return;
+      }
+
+      let res = await fetch(`${API_BASE}/ask`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ question: trimmed })
+        body: JSON.stringify({
+          question: trimmed,
+          conversationId: activeConversationId
+        })
       });
 
-      const data = await res.json();
+      let data = await res.json().catch(() => ({}));
+
+      if (
+        !res.ok &&
+        typeof data?.error === "string" &&
+        data.error.toLowerCase().includes("conversation")
+      ) {
+        activeConversationId = await resetConversation(token);
+
+        if (!activeConversationId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "tina",
+              content: "TINA could not recover the chat session.",
+              sources: [],
+              fallbackReferences: []
+            }
+          ]);
+          return;
+        }
+
+        res = await fetch(`${API_BASE}/ask`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            question: trimmed,
+            conversationId: activeConversationId
+          })
+        });
+
+        data = await res.json().catch(() => ({}));
+      }
 
       if (!res.ok) {
-        setMessages(prev => [
+        setMessages((prev) => [
           ...prev,
           {
             role: "tina",
@@ -203,7 +372,7 @@ function App() {
         return;
       }
 
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: "tina",
@@ -213,7 +382,7 @@ function App() {
         }
       ]);
     } catch {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: "tina",
@@ -241,13 +410,13 @@ function App() {
 
       const data = await res.json();
 
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: "tina",
           content: res.ok
-            ? `Knowledge base indexing completed. Files indexed: ${
-                data.filesIndexed ?? "completed"
+            ? `Knowledge base indexing started. Status: ${
+                data.message || "background job running"
               }.`
             : data.error || "Indexing failed.",
           sources: [],
@@ -255,7 +424,7 @@ function App() {
         }
       ]);
     } catch {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           role: "tina",
@@ -269,7 +438,7 @@ function App() {
     }
   };
 
-  const handleKeyDown = e => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       askTina();
@@ -321,7 +490,7 @@ function App() {
 
             <input
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="Username"
               style={inputStyle}
             />
@@ -330,9 +499,9 @@ function App() {
               <input
                 type={showLoginPassword ? "text" : "password"}
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Password"
-                onKeyDown={e => {
+                onKeyDown={(e) => {
                   if (e.key === "Enter") login();
                 }}
                 style={{ ...inputStyle, paddingRight: "62px" }}
@@ -425,28 +594,28 @@ function App() {
 
               <input
                 value={registerUsername}
-                onChange={e => setRegisterUsername(e.target.value)}
+                onChange={(e) => setRegisterUsername(e.target.value)}
                 placeholder="Username"
                 style={inputStyle}
               />
 
               <input
                 value={registerEmail}
-                onChange={e => setRegisterEmail(e.target.value)}
+                onChange={(e) => setRegisterEmail(e.target.value)}
                 placeholder="Email address"
                 style={inputStyle}
               />
 
               <input
                 value={registerMobile}
-                onChange={e => setRegisterMobile(e.target.value)}
+                onChange={(e) => setRegisterMobile(e.target.value)}
                 placeholder="Mobile phone"
                 style={inputStyle}
               />
 
               <input
                 value={registerCompany}
-                onChange={e => setRegisterCompany(e.target.value)}
+                onChange={(e) => setRegisterCompany(e.target.value)}
                 placeholder="Company (optional)"
                 style={inputStyle}
               />
@@ -455,7 +624,7 @@ function App() {
                 <input
                   type={showRegisterPassword ? "text" : "password"}
                   value={registerPassword}
-                  onChange={e => setRegisterPassword(e.target.value)}
+                  onChange={(e) => setRegisterPassword(e.target.value)}
                   placeholder="Password"
                   style={{ ...inputStyle, paddingRight: "62px" }}
                 />
@@ -610,6 +779,13 @@ function App() {
               <span>Role</span>
               <strong>{role || "user"}</strong>
             </div>
+
+            <div className="profile-row">
+              <span>Conversation</span>
+              <strong style={{ wordBreak: "break-all" }}>
+                {conversationId || "Not initialized"}
+              </strong>
+            </div>
           </div>
         </div>
       )}
@@ -632,7 +808,7 @@ function App() {
               {msg.sources && msg.sources.length > 0 && (
                 <div className="sources">
                   <strong>Source:</strong>
-                  {[...new Set(msg.sources.map(s => s.source))].join(", ")}
+                  {[...new Set(msg.sources.map((s) => s.source || s.title).filter(Boolean))].join(", ")}
                 </div>
               )}
 
@@ -673,14 +849,17 @@ function App() {
         <div className="input-box">
           <textarea
             value={question}
-            onChange={e => setQuestion(e.target.value)}
+            onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask TINA about Philippine tax rules, BIR issuances, or deadlines..."
             rows={2}
           />
 
-          <button onClick={askTina} disabled={loading || !question.trim()}>
-            {loading ? "..." : "Send"}
+          <button
+            onClick={askTina}
+            disabled={loading || bootstrappingConversation || !question.trim()}
+          >
+            {loading || bootstrappingConversation ? "..." : "Send"}
           </button>
         </div>
       </div>
