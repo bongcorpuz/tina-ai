@@ -35,8 +35,11 @@ function shouldHideSource(source = {}) {
 function getSourceKey(source = {}, index = 0) {
   return (
     source.fileId ||
+    source.file_id ||
     source.driveViewUrl ||
+    source.drive_view_url ||
     source.driveDownloadUrl ||
+    source.drive_download_url ||
     source.path ||
     source.originalSource ||
     source.source ||
@@ -58,7 +61,9 @@ function getSourceLabel(source = {}) {
 function getSourceHref(source = {}) {
   return (
     source.driveViewUrl ||
+    source.drive_view_url ||
     source.driveDownloadUrl ||
+    source.drive_download_url ||
     source.url ||
     source.href ||
     null
@@ -73,6 +78,12 @@ function normalizeSources(rawSources) {
     .filter((source) => !shouldHideSource(source))
     .filter((source) => Boolean(getSourceHref(source)))
     .slice(0, MAX_VISIBLE_SOURCES);
+}
+
+function normalizeFallbackReferences(rawFallbackReferences) {
+  return Array.isArray(rawFallbackReferences)
+    ? rawFallbackReferences.slice(0, 5)
+    : [];
 }
 
 function App() {
@@ -172,13 +183,19 @@ function App() {
         sources: normalizeSources(
           Array.isArray(msg.sourcesUsed)
             ? msg.sourcesUsed
-            : Array.isArray(msg.sources)
-              ? msg.sources
-              : []
+            : Array.isArray(msg.sources_used)
+              ? msg.sources_used
+              : Array.isArray(msg.sources)
+                ? msg.sources
+                : []
         ),
-        fallbackReferences: Array.isArray(msg.fallbackReferences)
-          ? msg.fallbackReferences
-          : []
+        fallbackReferences: normalizeFallbackReferences(
+          Array.isArray(msg.fallbackReferences)
+            ? msg.fallbackReferences
+            : Array.isArray(msg.fallback_references)
+              ? msg.fallback_references
+              : []
+        )
       }));
 
       setMessages(mapped);
@@ -447,13 +464,19 @@ function App() {
           sources: normalizeSources(
             Array.isArray(data.sourcesUsed)
               ? data.sourcesUsed
-              : Array.isArray(data.sources)
-                ? data.sources
-                : []
+              : Array.isArray(data.sources_used)
+                ? data.sources_used
+                : Array.isArray(data.sources)
+                  ? data.sources
+                  : []
           ),
-          fallbackReferences: Array.isArray(data.fallbackReferences)
-            ? data.fallbackReferences
-            : []
+          fallbackReferences: normalizeFallbackReferences(
+            Array.isArray(data.fallbackReferences)
+              ? data.fallbackReferences
+              : Array.isArray(data.fallback_references)
+                ? data.fallback_references
+                : []
+          )
         }
       ]);
     } catch {
