@@ -1,4 +1,4 @@
-// FILE: App.js
+// FILE: App.jsx
 
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
@@ -14,6 +14,44 @@ const DEFAULT_WELCOME_MESSAGE = {
   sources: [],
   fallbackReferences: []
 };
+
+function shouldHideSource(source = {}) {
+  const path = String(
+    source?.path ||
+      source?.source_path ||
+      source?.originalSource ||
+      source?.source ||
+      source?.title ||
+      ""
+  ).toLowerCase();
+
+  return (
+    path.includes("07_cpa_notes") ||
+    path.includes("08_review_materials")
+  );
+}
+
+function getSourceKey(source = {}, index = 0) {
+  return (
+    source.fileId ||
+    source.driveViewUrl ||
+    source.path ||
+    source.originalSource ||
+    source.source ||
+    source.title ||
+    `source-${index}`
+  );
+}
+
+function getSourceLabel(source = {}) {
+  return (
+    source.title ||
+    source.source ||
+    source.originalSource ||
+    source.path ||
+    "Untitled Source"
+  );
+}
 
 function App() {
   const [username, setUsername] = useState("");
@@ -377,8 +415,10 @@ function App() {
         {
           role: "tina",
           content: data.answer || "TINA did not return an answer.",
-          sources: data.sourcesUsed || [],
-          fallbackReferences: data.fallbackReferences || []
+          sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
+          fallbackReferences: Array.isArray(data.fallbackReferences)
+            ? data.fallbackReferences
+            : []
         }
       ]);
     } catch {
@@ -791,42 +831,79 @@ function App() {
       )}
 
       <div className="chat-container">
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`message-row ${msg.role === "user" ? "user" : "tina"}`}
-          >
-            {msg.role === "tina" && <div className="avatar">T</div>}
+        {messages.map((msg, index) => {
+          const visibleSources = Array.isArray(msg.sources)
+            ? msg.sources.filter((source) => !shouldHideSource(source))
+            : [];
 
-            <div className="message-box">
-              <div className="message-label">
-                {msg.role === "user" ? "YOU" : "TINA"}
+          return (
+            <div
+              key={index}
+              className={`message-row ${msg.role === "user" ? "user" : "tina"}`}
+            >
+              {msg.role === "tina" && <div className="avatar">T</div>}
+
+              <div className="message-box">
+                <div className="message-label">
+                  {msg.role === "user" ? "YOU" : "TINA"}
+                </div>
+
+                <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+
+                {visibleSources.length > 0 && (
+                  <div className="sources">
+                    <strong>Sources:</strong>
+                    <div style={{ marginTop: "8px" }}>
+                      {visibleSources.map((source, sourceIndex) => {
+                        const label = getSourceLabel(source);
+                        const href = source.driveViewUrl || source.driveDownloadUrl || null;
+
+                        return (
+                          <div
+                            key={getSourceKey(source, sourceIndex)}
+                            style={{ marginBottom: "6px", lineHeight: "1.45" }}
+                          >
+                            {href ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                  color: "#1d4ed8",
+                                  textDecoration: "underline",
+                                  wordBreak: "break-word"
+                                }}
+                              >
+                                {label}
+                              </a>
+                            ) : (
+                              <span style={{ wordBreak: "break-word" }}>
+                                {label}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {msg.fallbackReferences && msg.fallbackReferences.length > 0 && (
+                  <div className="sources">
+                    <strong>Possible references to verify:</strong>
+                    <ol>
+                      {msg.fallbackReferences.map((ref, i) => (
+                        <li key={i}>{ref}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
               </div>
 
-              <div>{msg.content}</div>
-
-              {msg.sources && msg.sources.length > 0 && (
-                <div className="sources">
-                  <strong>Source:</strong>
-                  {[...new Set(msg.sources.map((s) => s.source || s.title).filter(Boolean))].join(", ")}
-                </div>
-              )}
-
-              {msg.fallbackReferences && msg.fallbackReferences.length > 0 && (
-                <div className="sources">
-                  <strong>Possible references to verify:</strong>
-                  <ol>
-                    {msg.fallbackReferences.map((ref, i) => (
-                      <li key={i}>{ref}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
+              {msg.role === "user" && <div className="avatar user-avatar">You</div>}
             </div>
-
-            {msg.role === "user" && <div className="avatar user-avatar">You</div>}
-          </div>
-        ))}
+          );
+        })}
 
         {loading && (
           <div className="message-row tina">
