@@ -65,6 +65,16 @@ function getSourceHref(source = {}) {
   );
 }
 
+function normalizeSources(rawSources) {
+  if (!Array.isArray(rawSources)) return [];
+
+  return rawSources
+    .filter(Boolean)
+    .filter((source) => !shouldHideSource(source))
+    .filter((source) => Boolean(getSourceHref(source)))
+    .slice(0, MAX_VISIBLE_SOURCES);
+}
+
 function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -159,7 +169,13 @@ function App() {
       const mapped = data.messages.map((msg) => ({
         role: msg.role === "assistant" ? "tina" : "user",
         content: msg.content || "",
-        sources: Array.isArray(msg.sourcesUsed) ? msg.sourcesUsed : [],
+        sources: normalizeSources(
+          Array.isArray(msg.sourcesUsed)
+            ? msg.sourcesUsed
+            : Array.isArray(msg.sources)
+              ? msg.sources
+              : []
+        ),
         fallbackReferences: Array.isArray(msg.fallbackReferences)
           ? msg.fallbackReferences
           : []
@@ -428,7 +444,13 @@ function App() {
         {
           role: "tina",
           content: data.answer || "TINA did not return an answer.",
-          sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
+          sources: normalizeSources(
+            Array.isArray(data.sourcesUsed)
+              ? data.sourcesUsed
+              : Array.isArray(data.sources)
+                ? data.sources
+                : []
+          ),
           fallbackReferences: Array.isArray(data.fallbackReferences)
             ? data.fallbackReferences
             : []
@@ -845,11 +867,7 @@ function App() {
 
       <div className="chat-container">
         {messages.map((msg, index) => {
-          const filteredSources = Array.isArray(msg.sources)
-            ? msg.sources.filter((source) => !shouldHideSource(source))
-            : [];
-
-          const visibleSources = filteredSources.slice(0, MAX_VISIBLE_SOURCES);
+          const visibleSources = normalizeSources(msg.sources);
 
           return (
             <div
@@ -874,29 +892,26 @@ function App() {
                         const label = getSourceLabel(source);
                         const href = getSourceHref(source);
 
+                        if (!href) return null;
+
                         return (
                           <div
                             key={getSourceKey(source, sourceIndex)}
                             style={{ marginBottom: "6px", lineHeight: "1.45" }}
                           >
-                            {href ? (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noreferrer noopener"
-                                style={{
-                                  color: "#1d4ed8",
-                                  textDecoration: "underline",
-                                  wordBreak: "break-word"
-                                }}
-                              >
-                                {label}
-                              </a>
-                            ) : (
-                              <span style={{ wordBreak: "break-word" }}>
-                                {label}
-                              </span>
-                            )}
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              style={{
+                                color: "#1d4ed8",
+                                textDecoration: "underline",
+                                wordBreak: "break-word",
+                                cursor: "pointer"
+                              }}
+                            >
+                              {label}
+                            </a>
                           </div>
                         );
                       })}
