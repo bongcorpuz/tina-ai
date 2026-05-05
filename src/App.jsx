@@ -7,10 +7,11 @@ const API_BASE =
   (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || "")
     .replace(/\/$/, "");
 
+const MAX_VISIBLE_SOURCES = 5;
+
 const DEFAULT_WELCOME_MESSAGE = {
   role: "tina",
-  content:
-    "Hi, I’m TINA. Ask me about Philippine tax matters...",
+  content: "Hi, I’m TINA. Ask me about Philippine tax matters...",
   sources: [],
   fallbackReferences: []
 };
@@ -35,6 +36,7 @@ function getSourceKey(source = {}, index = 0) {
   return (
     source.fileId ||
     source.driveViewUrl ||
+    source.driveDownloadUrl ||
     source.path ||
     source.originalSource ||
     source.source ||
@@ -50,6 +52,16 @@ function getSourceLabel(source = {}) {
     source.originalSource ||
     source.path ||
     "Untitled Source"
+  );
+}
+
+function getSourceHref(source = {}) {
+  return (
+    source.driveViewUrl ||
+    source.driveDownloadUrl ||
+    source.url ||
+    source.href ||
+    null
   );
 }
 
@@ -98,7 +110,6 @@ function App() {
 
   useEffect(() => {
     if (!token || conversationId || bootstrappingConversation) return;
-
     void ensureConversation(token);
   }, [token, conversationId, bootstrappingConversation]);
 
@@ -148,8 +159,10 @@ function App() {
       const mapped = data.messages.map((msg) => ({
         role: msg.role === "assistant" ? "tina" : "user",
         content: msg.content || "",
-        sources: [],
-        fallbackReferences: []
+        sources: Array.isArray(msg.sourcesUsed) ? msg.sourcesUsed : [],
+        fallbackReferences: Array.isArray(msg.fallbackReferences)
+          ? msg.fallbackReferences
+          : []
       }));
 
       setMessages(mapped);
@@ -832,9 +845,11 @@ function App() {
 
       <div className="chat-container">
         {messages.map((msg, index) => {
-          const visibleSources = Array.isArray(msg.sources)
+          const filteredSources = Array.isArray(msg.sources)
             ? msg.sources.filter((source) => !shouldHideSource(source))
             : [];
+
+          const visibleSources = filteredSources.slice(0, MAX_VISIBLE_SOURCES);
 
           return (
             <div
@@ -853,10 +868,11 @@ function App() {
                 {visibleSources.length > 0 && (
                   <div className="sources">
                     <strong>Sources:</strong>
+
                     <div style={{ marginTop: "8px" }}>
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getSourceLabel(source);
-                        const href = source.driveViewUrl || source.driveDownloadUrl || null;
+                        const href = getSourceHref(source);
 
                         return (
                           <div
@@ -867,7 +883,7 @@ function App() {
                               <a
                                 href={href}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noreferrer noopener"
                                 style={{
                                   color: "#1d4ed8",
                                   textDecoration: "underline",
@@ -892,7 +908,7 @@ function App() {
                   <div className="sources">
                     <strong>Possible references to verify:</strong>
                     <ol>
-                      {msg.fallbackReferences.map((ref, i) => (
+                      {msg.fallbackReferences.slice(0, 5).map((ref, i) => (
                         <li key={i}>{ref}</li>
                       ))}
                     </ol>
