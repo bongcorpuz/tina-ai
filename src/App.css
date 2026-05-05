@@ -261,6 +261,21 @@ body {
   margin: 5px 0 0;
 }
 
+/* ================= SOURCE LINKS ================= */
+.sources a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.sources a:hover {
+  color: #1e3a8a;
+}
+
+.sources a:visited {
+  color: #6d28d9;
+}
+
 /* ================= INPUT AREA ================= */
 .input-container {
   position: fixed;
