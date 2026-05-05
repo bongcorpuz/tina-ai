@@ -10,7 +10,7 @@ const API_BASE =
 const DEFAULT_WELCOME_MESSAGE = {
   role: "tina",
   content:
-    "Hi, I’m TINA. Ask me about Philippine tax matters based on the indexed knowledge base.",
+    "Hi, I’m TINA. Ask me about Philippine tax matters...",
   sources: [],
   fallbackReferences: []
 };
