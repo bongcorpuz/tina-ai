@@ -366,6 +366,27 @@ function App() {
     setMessages([DEFAULT_WELCOME_MESSAGE]);
   };
 
+  const SLASH_COMMAND_ENDPOINTS = {
+    "/ask": "/ask",
+    "/tax": "/tax",
+    "/review": "/review",
+    "/quiz": "/quiz",
+    "/case": "/case",
+    "/source": "/source",
+    "/audit": "/audit",
+    "/debug": "/debug",
+    "/patch": "/patch",
+    "/diagnostic": "/diagnostic",
+    "/progress": "/progress",
+    "/feedback": "/feedback"
+  };
+
+  const detectSlashCommand = (text) => {
+    const match = text.match(/^(\/\w+)/);
+    if (!match) return null;
+    return SLASH_COMMAND_ENDPOINTS[match[1].toLowerCase()] || null;
+  };
+
   const askTina = async () => {
     const trimmed = question.trim();
     if (!trimmed || loading || !token) return;
@@ -373,6 +394,8 @@ function App() {
     setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
     setQuestion("");
     setLoading(true);
+
+    const apiEndpoint = detectSlashCommand(trimmed) || "/ask";
 
     try {
       let activeConversationId = conversationId;
@@ -394,7 +417,7 @@ function App() {
         return;
       }
 
-      let res = await fetch(`${API_BASE}/ask`, {
+      let res = await fetch(`${API_BASE}${apiEndpoint}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -428,7 +451,7 @@ function App() {
           return;
         }
 
-        res = await fetch(`${API_BASE}/ask`, {
+        res = await fetch(`${API_BASE}${apiEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -468,7 +491,9 @@ function App() {
                 ? data.sources_used
                 : Array.isArray(data.sources)
                   ? data.sources
-                  : []
+                  : Array.isArray(data.retrievedSources)
+                    ? data.retrievedSources
+                    : []
           ),
           fallbackReferences: normalizeFallbackReferences(
             Array.isArray(data.fallbackReferences)
