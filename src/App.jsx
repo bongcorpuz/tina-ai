@@ -1,6 +1,8 @@
 // FILE: App.jsx
 
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import "./App.css";
 
 const API_BASE =
@@ -949,7 +951,16 @@ function App() {
                   {msg.role === "user" ? "YOU" : "TINA"}
                 </div>
 
-                <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                {msg.role === "tina" ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    className="message-markdown"
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                ) : (
+                  <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
+                )}
 
                 {visibleSources.length > 0 && (
                   <div className="sources">
