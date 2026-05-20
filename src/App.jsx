@@ -381,10 +381,36 @@ function App() {
     "/feedback": "/feedback"
   };
 
+  const COMMAND_MODE_MAP = {
+    "/quiz":       { commandMode: "QUIZ",        responseMode: "QUIZ_MODE",     orchestrationMode: "QUIZ_MODE",     requiresQuizMode: true },
+    "/review":     { commandMode: "REVIEWER",     responseMode: "REVIEWER_MODE", orchestrationMode: "REVIEWER_MODE", requiresReviewerMode: true },
+    "/case":       { commandMode: "CASE",         responseMode: "CASE_ANALYSIS", orchestrationMode: "CASE_ANALYSIS", requiresCaseAnalysis: true },
+    "/source":     { commandMode: "SOURCE",       responseMode: "SOURCE_LOOKUP", orchestrationMode: "SOURCE_LOOKUP", requiresSourceVisibility: true },
+    "/tax":        { commandMode: "TAX",          responseMode: "SENIOR_COUNSEL_MEMO", orchestrationMode: "SENIOR_COUNSEL_MEMO" },
+    "/audit":      { commandMode: "AUDIT",        responseMode: "COMPLEX_ADVISORY", orchestrationMode: "COMPLEX_ADVISORY" },
+    "/diagnostic": { commandMode: "DIAGNOSTIC",   responseMode: "QUIZ_MODE",     orchestrationMode: "QUIZ_MODE",     requiresQuizMode: true },
+    "/ask":        {}
+  };
+
   const detectSlashCommand = (text) => {
     const match = text.match(/^(\/\w+)/);
     if (!match) return null;
     return SLASH_COMMAND_ENDPOINTS[match[1].toLowerCase()] || null;
+  };
+
+  const buildCommandBody = (text, conversationId) => {
+    const match = text.match(/^(\/\w+)\s*(.*)/s);
+    const command = match ? match[1].toLowerCase() : null;
+    const cleanQuestion = match ? match[2].trim() : text;
+    const modeMeta = (command && COMMAND_MODE_MAP[command]) || {};
+
+    return {
+      question: text,
+      cleanQuestion: command ? cleanQuestion : text,
+      detectedCommand: command || null,
+      conversationId,
+      ...modeMeta
+    };
   };
 
   const askTina = async () => {
@@ -423,10 +449,7 @@ function App() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          question: trimmed,
-          conversationId: activeConversationId
-        })
+        body: JSON.stringify(buildCommandBody(trimmed, activeConversationId))
       });
 
       let data = await res.json().catch(() => ({}));
@@ -457,10 +480,7 @@ function App() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`
           },
-          body: JSON.stringify({
-            question: trimmed,
-            conversationId: activeConversationId
-          })
+          body: JSON.stringify(buildCommandBody(trimmed, activeConversationId))
         });
 
         data = await res.json().catch(() => ({}));
