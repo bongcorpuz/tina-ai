@@ -152,6 +152,16 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+ useEffect(() => {
+  if (!token) return;
+
+  saveChatHistory(
+    messages,
+    currentUser?.username || "guest",
+    conversationId || "default"
+  );
+}, [messages, token, currentUser?.username, conversationId]); 
+
   useEffect(() => {
     if (!token || conversationId || bootstrappingConversation) return;
     void ensureConversation(token);
