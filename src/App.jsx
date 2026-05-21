@@ -2,12 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./App.css";
-
-import {
-  loadChatHistory,
-  saveChatHistory,
-  clearChatHistory
-} from "./utils/chatStorage";
+import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chatStorage";
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
@@ -122,22 +117,13 @@ function App() {
   const [loginError, setLoginError] = useState("");
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState(() => {
-  const savedUser = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("tinaUser") || "{}");
-    } catch {
-      return {};
+    const storedId = localStorage.getItem("tinaConversationId");
+    if (storedId) {
+      const cached = loadChatHistory();
+      if (cached.length > 0) return cached;
     }
-  })();
-
-  const savedConversationId = localStorage.getItem("tinaConversationId") || "";
-  const savedMessages = loadChatHistory(
-    savedUser?.username || "guest",
-    savedConversationId || "default"
-  );
-
-  return savedMessages.length ? savedMessages : [DEFAULT_WELCOME_MESSAGE];
-});
+    return [DEFAULT_WELCOME_MESSAGE];
+  });
 
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
@@ -152,15 +138,9 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
- useEffect(() => {
-  if (!token) return;
-
-  saveChatHistory(
-    messages,
-    currentUser?.username || "guest",
-    conversationId || "default"
-  );
-}, [messages, token, currentUser?.username, conversationId]); 
+  useEffect(() => {
+    saveChatHistory(messages);
+  }, [messages]);
 
   useEffect(() => {
     if (!token || conversationId || bootstrappingConversation) return;
@@ -267,16 +247,15 @@ function App() {
   }
 
   async function resetConversation(authToken) {
-  clearChatHistory(currentUser?.username || "guest", conversationId || "default");
+    localStorage.removeItem("tinaConversationId");
+    clearChatHistory();
+    setConversationId("");
+    setMessages([DEFAULT_WELCOME_MESSAGE]);
 
-  localStorage.removeItem("tinaConversationId");
-  setConversationId("");
-  setMessages([DEFAULT_WELCOME_MESSAGE]);
+    if (!authToken) return "";
 
-  if (!authToken) return "";
-
-  return await ensureConversation(authToken);
-}
+    return await ensureConversation(authToken);
+  }
 
   const login = async () => {
     setLoginError("");
@@ -380,14 +359,11 @@ function App() {
   };
 
   const logout = () => {
-    clearChatHistory(currentUser?.username || "guest", 
-    conversationId || "default"
-    );
-    
     localStorage.removeItem("tinaToken");
     localStorage.removeItem("tinaRole");
     localStorage.removeItem("tinaUser");
     localStorage.removeItem("tinaConversationId");
+    clearChatHistory();
 
     setToken("");
     setRole("");
