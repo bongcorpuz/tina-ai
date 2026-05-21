@@ -380,6 +380,10 @@ function App() {
   };
 
   const logout = () => {
+    clearChatHistory(currentUser?.username || "guest", 
+    conversationId || "default"
+    );
+    
     localStorage.removeItem("tinaToken");
     localStorage.removeItem("tinaRole");
     localStorage.removeItem("tinaUser");
