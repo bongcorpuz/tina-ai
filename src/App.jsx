@@ -1,13 +1,13 @@
-// FILE: App.jsx
-
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./App.css";
 
-const API_BASE =
-  (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || "")
-    .replace(/\/$/, "");
+const API_BASE = (
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_API_BASE ||
+  ""
+).replace(/\/$/, "");
 
 const MAX_VISIBLE_SOURCES = 5;
 
@@ -28,10 +28,7 @@ function shouldHideSource(source = {}) {
       ""
   ).toLowerCase();
 
-  return (
-    path.includes("07_cpa_notes") ||
-    path.includes("08_review_materials")
-  );
+  return path.includes("07_cpa_notes") || path.includes("08_review_materials");
 }
 
 function getSourceKey(source = {}, index = 0) {
@@ -107,6 +104,7 @@ function App() {
   const [conversationId, setConversationId] = useState(
     localStorage.getItem("tinaConversationId") || ""
   );
+
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("tinaUser") || "{}");
@@ -121,7 +119,8 @@ function App() {
 
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
-  const [bootstrappingConversation, setBootstrappingConversation] = useState(false);
+  const [bootstrappingConversation, setBootstrappingConversation] =
+    useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
 
@@ -143,9 +142,7 @@ function App() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${authToken}`
       },
-      body: JSON.stringify({
-        title: "New Conversation"
-      })
+      body: JSON.stringify({ title: "New Conversation" })
     });
 
     const data = await res.json().catch(() => ({}));
@@ -163,16 +160,12 @@ function App() {
     try {
       const res = await fetch(`${API_BASE}/conversations/${id}/messages`, {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${authToken}`
-        }
+        headers: { Authorization: `Bearer ${authToken}` }
       });
 
       const data = await res.json().catch(() => ({}));
 
-      if (!res.ok || !Array.isArray(data?.messages)) {
-        return;
-      }
+      if (!res.ok || !Array.isArray(data?.messages)) return;
 
       if (data.messages.length === 0) {
         setMessages([DEFAULT_WELCOME_MESSAGE]);
@@ -212,7 +205,8 @@ function App() {
     setBootstrappingConversation(true);
 
     try {
-      let activeConversationId = localStorage.getItem("tinaConversationId") || "";
+      let activeConversationId =
+        localStorage.getItem("tinaConversationId") || "";
 
       if (!activeConversationId) {
         activeConversationId = await createConversationWithToken(authToken);
@@ -229,8 +223,7 @@ function App() {
         {
           role: "tina",
           content:
-            error?.message ||
-            "TINA could not initialize the conversation session.",
+            error?.message || "TINA could not initialize the conversation session.",
           sources: [],
           fallbackReferences: []
         }
@@ -248,8 +241,7 @@ function App() {
 
     if (!authToken) return "";
 
-    const newConversationId = await ensureConversation(authToken);
-    return newConversationId;
+    return await ensureConversation(authToken);
   }
 
   const login = async () => {
@@ -384,14 +376,47 @@ function App() {
   };
 
   const COMMAND_MODE_MAP = {
-    "/quiz":       { commandMode: "QUIZ",        responseMode: "QUIZ_MODE",     orchestrationMode: "QUIZ_MODE",     requiresQuizMode: true },
-    "/review":     { commandMode: "REVIEWER",     responseMode: "REVIEWER_MODE", orchestrationMode: "REVIEWER_MODE", requiresReviewerMode: true },
-    "/case":       { commandMode: "CASE",         responseMode: "CASE_ANALYSIS", orchestrationMode: "CASE_ANALYSIS", requiresCaseAnalysis: true },
-    "/source":     { commandMode: "SOURCE",       responseMode: "SOURCE_LOOKUP", orchestrationMode: "SOURCE_LOOKUP", requiresSourceVisibility: true },
-    "/tax":        { commandMode: "TAX",          responseMode: "SENIOR_COUNSEL_MEMO", orchestrationMode: "SENIOR_COUNSEL_MEMO" },
-    "/audit":      { commandMode: "AUDIT",        responseMode: "COMPLEX_ADVISORY", orchestrationMode: "COMPLEX_ADVISORY" },
-    "/diagnostic": { commandMode: "DIAGNOSTIC",   responseMode: "QUIZ_MODE",     orchestrationMode: "QUIZ_MODE",     requiresQuizMode: true },
-    "/ask":        {}
+    "/quiz": {
+      commandMode: "QUIZ",
+      responseMode: "QUIZ_MODE",
+      orchestrationMode: "QUIZ_MODE",
+      requiresQuizMode: true
+    },
+    "/review": {
+      commandMode: "REVIEWER",
+      responseMode: "REVIEWER_MODE",
+      orchestrationMode: "REVIEWER_MODE",
+      requiresReviewerMode: true
+    },
+    "/case": {
+      commandMode: "CASE",
+      responseMode: "CASE_ANALYSIS",
+      orchestrationMode: "CASE_ANALYSIS",
+      requiresCaseAnalysis: true
+    },
+    "/source": {
+      commandMode: "SOURCE",
+      responseMode: "SOURCE_LOOKUP",
+      orchestrationMode: "SOURCE_LOOKUP",
+      requiresSourceVisibility: true
+    },
+    "/tax": {
+      commandMode: "TAX",
+      responseMode: "SENIOR_COUNSEL_MEMO",
+      orchestrationMode: "SENIOR_COUNSEL_MEMO"
+    },
+    "/audit": {
+      commandMode: "AUDIT",
+      responseMode: "COMPLEX_ADVISORY",
+      orchestrationMode: "COMPLEX_ADVISORY"
+    },
+    "/diagnostic": {
+      commandMode: "DIAGNOSTIC",
+      responseMode: "QUIZ_MODE",
+      orchestrationMode: "QUIZ_MODE",
+      requiresQuizMode: true
+    },
+    "/ask": {}
   };
 
   const detectSlashCommand = (text) => {
@@ -400,7 +425,7 @@ function App() {
     return SLASH_COMMAND_ENDPOINTS[match[1].toLowerCase()] || null;
   };
 
-  const buildCommandBody = (text, conversationId) => {
+  const buildCommandBody = (text, activeConversationId) => {
     const match = text.match(/^(\/\w+)\s*(.*)/s);
     const command = match ? match[1].toLowerCase() : null;
     const cleanQuestion = match ? match[2].trim() : text;
@@ -410,7 +435,7 @@ function App() {
       question: text,
       cleanQuestion: command ? cleanQuestion : text,
       detectedCommand: command || null,
-      conversationId,
+      conversationId: activeConversationId,
       ...modeMeta
     };
   };
@@ -612,6 +637,20 @@ function App() {
     color: "#1e3358",
     fontWeight: "bold",
     cursor: "pointer"
+  };
+
+  const renderMessageContent = (msg) => {
+    if (msg.role !== "tina") {
+      return <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || ""}</div>;
+    }
+
+    return (
+      <div className="message-markdown">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          {msg.content || ""}
+        </ReactMarkdown>
+      </div>
+    );
   };
 
   if (!token) {
@@ -951,16 +990,7 @@ function App() {
                   {msg.role === "user" ? "YOU" : "TINA"}
                 </div>
 
-                {msg.role === "tina" ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    className="message-markdown"
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                ) : (
-                  <div style={{ whiteSpace: "pre-wrap" }}>{msg.content}</div>
-                )}
+                {renderMessageContent(msg)}
 
                 {visibleSources.length > 0 && (
                   <div className="sources">
@@ -976,7 +1006,10 @@ function App() {
                         return (
                           <div
                             key={getSourceKey(source, sourceIndex)}
-                            style={{ marginBottom: "6px", lineHeight: "1.45" }}
+                            style={{
+                              marginBottom: "6px",
+                              lineHeight: "1.45"
+                            }}
                           >
                             <a
                               href={href}
@@ -1010,7 +1043,9 @@ function App() {
                 )}
               </div>
 
-              {msg.role === "user" && <div className="avatar user-avatar">You</div>}
+              {msg.role === "user" && (
+                <div className="avatar user-avatar">You</div>
+              )}
             </div>
           );
         })}
