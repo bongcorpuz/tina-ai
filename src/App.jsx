@@ -3,6 +3,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./App.css";
 
+import {
+  loadChatHistory,
+  saveChatHistory,
+  clearChatHistory
+} from "./utils/chatStorage";
+
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
   import.meta.env.VITE_API_BASE ||
