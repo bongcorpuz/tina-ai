@@ -267,14 +267,16 @@ function App() {
   }
 
   async function resetConversation(authToken) {
-    localStorage.removeItem("tinaConversationId");
-    setConversationId("");
-    setMessages([DEFAULT_WELCOME_MESSAGE]);
+  clearChatHistory(currentUser?.username || "guest", conversationId || "default");
 
-    if (!authToken) return "";
+  localStorage.removeItem("tinaConversationId");
+  setConversationId("");
+  setMessages([DEFAULT_WELCOME_MESSAGE]);
 
-    return await ensureConversation(authToken);
-  }
+  if (!authToken) return "";
+
+  return await ensureConversation(authToken);
+}
 
   const login = async () => {
     setLoginError("");
