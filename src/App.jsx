@@ -121,7 +121,23 @@ function App() {
 
   const [loginError, setLoginError] = useState("");
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState([DEFAULT_WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState(() => {
+  const savedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("tinaUser") || "{}");
+    } catch {
+      return {};
+    }
+  })();
+
+  const savedConversationId = localStorage.getItem("tinaConversationId") || "";
+  const savedMessages = loadChatHistory(
+    savedUser?.username || "guest",
+    savedConversationId || "default"
+  );
+
+  return savedMessages.length ? savedMessages : [DEFAULT_WELCOME_MESSAGE];
+});
 
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
