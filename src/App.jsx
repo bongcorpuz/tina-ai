@@ -86,6 +86,80 @@ function normalizeFallbackReferences(rawFallbackReferences) {
     : [];
 }
 
+function ChipEl({ chip }) {
+  if (!chip || typeof chip !== "object") return null;
+  const title = chip.title || chip.label || "";
+  if (chip.url) {
+    return (
+      <a
+        className="educational-source-chip"
+        href={chip.url}
+        target="_blank"
+        rel="noreferrer noopener"
+        title={title}
+      >
+        {chip.label}
+      </a>
+    );
+  }
+  return (
+    <span className="educational-source-chip disabled" title={title}>
+      {chip.label}
+    </span>
+  );
+}
+
+function EducationalSources({ data }) {
+  const chips = Array.isArray(data?.chips)
+    ? data.chips.filter((chip) => chip && typeof chip === "object")
+    : [];
+  if (!data || chips.length === 0) return null;
+
+  const { label } = data;
+  const hasGroups = chips.some((c) => c.group);
+
+  if (!hasGroups) {
+    return (
+      <div className="educational-sources">
+        <span className="educational-sources-label">{label || "Sources"}</span>
+        <div className="educational-source-chips">
+          {chips.map((chip, i) => <ChipEl key={i} chip={chip} />)}
+        </div>
+      </div>
+    );
+  }
+
+  const groups = {};
+  const ungrouped = [];
+  for (const chip of chips) {
+    if (chip.group) {
+      if (!groups[chip.group]) groups[chip.group] = [];
+      groups[chip.group].push(chip);
+    } else {
+      ungrouped.push(chip);
+    }
+  }
+
+  return (
+    <div className="educational-sources">
+      <span className="educational-sources-label">{label || "Sources"}</span>
+      {Object.entries(groups).map(([groupName, groupChips]) => (
+        <div key={groupName} className="educational-source-group">
+          <span className="educational-source-group-title">{groupName}</span>
+          <div className="educational-source-chips">
+            {groupChips.map((chip, i) => <ChipEl key={i} chip={chip} />)}
+          </div>
+        </div>
+      ))}
+      {ungrouped.length > 0 && (
+        <div className="educational-source-chips">
+          {ungrouped.map((chip, i) => <ChipEl key={i} chip={chip} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -562,7 +636,8 @@ function App() {
               : Array.isArray(data.fallback_references)
                 ? data.fallback_references
                 : []
-          )
+          ),
+          educationalSources: data.educationalSources || null
         }
       ]);
     } catch {
@@ -1005,6 +1080,10 @@ function App() {
                 </div>
 
                 {renderMessageContent(msg)}
+
+                {msg.role === "tina" && (
+                  <EducationalSources data={msg.educationalSources} />
+                )}
 
                 {visibleSources.length > 0 && (
                   <div className="sources">
