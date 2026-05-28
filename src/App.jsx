@@ -123,9 +123,12 @@ function stripInlineSourceBlock(text = "") {
   return String(text || "")
     // "Sources Used" — plain, bold (**Sources Used:**), italic
     .replace(/\n+\*{0,2}Sources Used\*{0,2}:?\*{0,2}[\s\S]*$/i, "")
-    // "Sources" — plain (Sources:), bold (**Sources:**, **Sources**:, **Sources**),
-    // italic (*Sources:*) — (?:\n|$) prevents matching mid-sentence bold phrases
-    .replace(/\n+\*{0,2}Sources\*{0,2}:?\*{0,2}\s*(?:\n|$)[\s\S]*$/i, "")
+    // "Sources" — colon-present: Sources:, **Sources:**, **Sources**:, *Sources:*
+    // Colon distinguishes the section header from prose ("Sources of income vary…").
+    // No (?:\n|$) guard — colon alone is sufficient; catches inline lists too.
+    .replace(/\n+\*{0,2}Sources\*{0,2}:\*{0,2}[\s\S]*$/i, "")
+    // "Sources" — no-colon bold/italic variant (**Sources**\nItems); explicit \n guard
+    .replace(/\n+\*{0,2}Sources\*{0,2}\s*\n[\s\S]*$/i, "")
     // Markdown heading variants: ## Sources, ### Sources:, # Sources Used, ## References
     .replace(/\n+#{1,6}\s*\*{0,2}(?:Sources(?:\s+Used)?|References)\*{0,2}:?[\s\S]*$/i, "")
     // "References" — plain (References:), bold (**References:**), italic
@@ -1193,7 +1196,7 @@ function App() {
                   <EducationalSources data={msg.educationalSources} />
                 )}
 
-                {visibleSources.length > 0 && (
+                {visibleSources.some(s => getSourceHref(s)) && (
                   <div className="sources">
                     <strong>Sources:</strong>
 
