@@ -70,14 +70,43 @@ function getSourceHref(source = {}) {
   );
 }
 
-function normalizeSources(rawSources) {
+// Stable dedupe key for a source object.
+// Priority: normalized_reference → reference → title/source/filename → url → id
+function getDedupeKey(source = {}) {
+  const raw =
+    source.normalized_reference ||
+    source.normalizedReference ||
+    source.reference ||
+    source.title ||
+    source.document_title ||
+    source.source ||
+    source.filename ||
+    source.driveViewUrl ||
+    source.drive_view_url ||
+    source.url ||
+    source.href ||
+    source.id ||
+    "";
+  return String(raw).trim().toLowerCase() || null;
+}
+
+function normalizeSources(rawSources, { uncapped = false } = {}) {
   if (!Array.isArray(rawSources)) return [];
 
-  return rawSources
+  const seen = new Set();
+  const filtered = rawSources
     .filter(Boolean)
     .filter((source) => !shouldHideSource(source))
     .filter((source) => Boolean(getSourceHref(source)))
-    .slice(0, MAX_VISIBLE_SOURCES);
+    .filter((source) => {
+      const key = getDedupeKey(source);
+      if (!key) return true;          // no stable key — cannot dedupe, keep
+      if (seen.has(key)) return false; // duplicate — drop
+      seen.add(key);
+      return true;
+    });
+
+  return uncapped ? filtered : filtered.slice(0, MAX_VISIBLE_SOURCES);
 }
 
 function normalizeFallbackReferences(rawFallbackReferences) {
@@ -258,26 +287,37 @@ function App() {
         return;
       }
 
-      const mapped = data.messages.map((msg) => ({
-        role: msg.role === "assistant" ? "tina" : "user",
-        content: msg.content || "",
-        sources: normalizeSources(
-          Array.isArray(msg.sourcesUsed)
-            ? msg.sourcesUsed
-            : Array.isArray(msg.sources_used)
-              ? msg.sources_used
-              : Array.isArray(msg.sources)
-                ? msg.sources
+      const mapped = data.messages.map((msg) => {
+        const rawSources =
+          Array.isArray(msg.sourcesUsed)        ? msg.sourcesUsed
+          : Array.isArray(msg.sources_used)     ? msg.sources_used
+          : Array.isArray(msg.sources)          ? msg.sources
+          : [];
+
+        // Infer /source mode from stored source count: the backend caps
+        // non-/source modes to MAX_VISIBLE_SOURCES before persisting sourcesUsed.
+        // If the stored count exceeds MAX_VISIBLE_SOURCES it must have been
+        // a /source response stored before the cap was applied.
+        const requiresSourceVisibility = rawSources.length > MAX_VISIBLE_SOURCES;
+
+        return {
+          role: msg.role === "assistant" ? "tina" : "user",
+          content: msg.content || "",
+          // sourceCards is a frontend-computed field, not persisted server-side.
+          // Leave empty so the render-loop priority rule falls through to sources.
+          sourceCards: [],
+          requiresSourceVisibility,
+          sources: normalizeSources(rawSources, { uncapped: requiresSourceVisibility }),
+          fallbackReferences: normalizeFallbackReferences(
+            Array.isArray(msg.fallbackReferences)
+              ? msg.fallbackReferences
+              : Array.isArray(msg.fallback_references)
+                ? msg.fallback_references
                 : []
-        ),
-        fallbackReferences: normalizeFallbackReferences(
-          Array.isArray(msg.fallbackReferences)
-            ? msg.fallbackReferences
-            : Array.isArray(msg.fallback_references)
-              ? msg.fallback_references
-              : []
-        )
-      }));
+          ),
+          educationalSources: msg.educationalSources || null
+        };
+      });
 
       setMessages(mapped);
     } catch {
@@ -532,7 +572,30 @@ function App() {
     const trimmed = question.trim();
     if (!trimmed || loading || !token) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: trimmed }]);
+    // Derive display content: strip slash command prefix for production routes.
+    // Developer routes (/debug, /diagnostic, /patch) and exit commands
+    // (/bye, /exit, /quit) fall through the hasOwnProperty check and preserve
+    // the raw input verbatim. The API body still receives the original trimmed input.
+    const DISPLAY_PREFIXES = {
+      "/ask":    null,
+      "/tax":    null,
+      "/review": "Review:",
+      "/quiz":   "Quiz:",
+      "/source": "Source Search:",
+      "/case":   "Case:",
+      "/audit":  "Audit:",
+    };
+    const _bubbleMatch  = trimmed.match(/^(\/\w+)\s*(.*)/s);
+    const _bubbleCmd    = _bubbleMatch ? _bubbleMatch[1].toLowerCase() : null;
+    const _bubbleClean  = _bubbleMatch ? _bubbleMatch[2].trim() : trimmed;
+    const displayContent =
+      _bubbleCmd && Object.prototype.hasOwnProperty.call(DISPLAY_PREFIXES, _bubbleCmd)
+        ? DISPLAY_PREFIXES[_bubbleCmd]
+          ? `${DISPLAY_PREFIXES[_bubbleCmd]} ${_bubbleClean}`.trim()
+          : _bubbleClean || trimmed
+        : trimmed;
+
+    setMessages((prev) => [...prev, { role: "user", content: displayContent }]);
     setQuestion("");
     setLoading(true);
 
@@ -614,22 +677,36 @@ function App() {
         return;
       }
 
+      // /source mode: backend sets requiresSourceVisibility and hook="/source".
+      // For /source, sourceCards is stored empty so the priority rule in the
+      // render loop falls through to msg.sources (the full uncapped array).
+      // For all other modes, sourceCards holds the backend's deduped max-5 array
+      // and is used as the single authoritative source display.
+      const isSourceMode = Boolean(
+        data.requiresSourceVisibility ||
+        data.hook === "/source"
+      );
+
+      const rawSourceList =
+        Array.isArray(data.sourcesUsed)        ? data.sourcesUsed
+        : Array.isArray(data.sources_used)     ? data.sources_used
+        : Array.isArray(data.sources)          ? data.sources
+        : Array.isArray(data.retrievedSources) ? data.retrievedSources
+        : [];
+
       setMessages((prev) => [
         ...prev,
         {
           role: "tina",
           content: data.answer || "TINA did not return an answer.",
-          sources: normalizeSources(
-            Array.isArray(data.sourcesUsed)
-              ? data.sourcesUsed
-              : Array.isArray(data.sources_used)
-                ? data.sources_used
-                : Array.isArray(data.sources)
-                  ? data.sources
-                  : Array.isArray(data.retrievedSources)
-                    ? data.retrievedSources
-                    : []
-          ),
+          // sourceCards: only populated for non-/source modes; empty for /source
+          // so the render-loop priority rule naturally falls through to sources.
+          sourceCards: !isSourceMode && Array.isArray(data.sourceCards)
+            ? data.sourceCards
+            : [],
+          requiresSourceVisibility: isSourceMode,
+          // sources: uncapped for /source; max-5 + filtered for all other modes.
+          sources: normalizeSources(rawSourceList, { uncapped: isSourceMode }),
           fallbackReferences: normalizeFallbackReferences(
             Array.isArray(data.fallbackReferences)
               ? data.fallbackReferences
@@ -1065,7 +1142,17 @@ function App() {
 
       <div className="chat-container">
         {messages.map((msg, index) => {
-          const visibleSources = normalizeSources(msg.sources);
+          // Single visible source truth: prefer sourceCards (deduped, authority-ranked,
+          // max-5 from backend) over sources. For /source messages, sourceCards is
+          // empty so this naturally falls through to the full uncapped sources array.
+          const visibleSources = normalizeSources(
+            msg.sourceCards?.length
+              ? msg.sourceCards
+              : msg.sources?.length
+                ? msg.sources
+                : [],
+            { uncapped: Boolean(msg.requiresSourceVisibility) }
+          );
 
           return (
             <div
@@ -1081,7 +1168,7 @@ function App() {
 
                 {renderMessageContent(msg)}
 
-                {msg.role === "tina" && (
+                {msg.role === "tina" && visibleSources.length === 0 && (
                   <EducationalSources data={msg.educationalSources} />
                 )}
 
