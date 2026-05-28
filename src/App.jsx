@@ -115,6 +115,26 @@ function normalizeFallbackReferences(rawFallbackReferences) {
     : [];
 }
 
+// Defensive display-only strip: removes model-generated trailing source appendix
+// blocks that survived backend stripping.  All patterns are newline-anchored (\n+)
+// so inline phrases like "See Sources: RR 16-2005 for details." are never affected.
+// Does NOT mutate stored msg.content — only the value passed to ReactMarkdown.
+function stripInlineSourceBlock(text = "") {
+  return String(text || "")
+    // "Sources Used" — plain, bold (**Sources Used:**), italic
+    .replace(/\n+\*{0,2}Sources Used\*{0,2}:?\*{0,2}[\s\S]*$/i, "")
+    // "Sources" — plain (Sources:), bold (**Sources:**, **Sources**:, **Sources**),
+    // italic (*Sources:*) — (?:\n|$) prevents matching mid-sentence bold phrases
+    .replace(/\n+\*{0,2}Sources\*{0,2}:?\*{0,2}\s*(?:\n|$)[\s\S]*$/i, "")
+    // Markdown heading variants: ## Sources, ### Sources:, # Sources Used, ## References
+    .replace(/\n+#{1,6}\s*\*{0,2}(?:Sources(?:\s+Used)?|References)\*{0,2}:?[\s\S]*$/i, "")
+    // "References" — plain (References:), bold (**References:**), italic
+    .replace(/\n+\*{0,2}References\*{0,2}:?\*{0,2}[\s\S]*$/i, "")
+    // "Validated Indexed Sources" appendix
+    .replace(/\n+Validated Indexed Sources[\s\S]*$/i, "")
+    .trim();
+}
+
 function ChipEl({ chip }) {
   if (!chip || typeof chip !== "object") return null;
   const title = chip.title || chip.label || "";
@@ -810,10 +830,11 @@ function App() {
       return <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || ""}</div>;
     }
 
+    const cleanContent = stripInlineSourceBlock(msg.content || "");
     return (
       <div className="message-markdown">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {msg.content || ""}
+          {cleanContent}
         </ReactMarkdown>
       </div>
     );
