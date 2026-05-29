@@ -70,22 +70,95 @@ function getSourceHref(source = {}) {
   );
 }
 
+// Extract the filename portion of a path-like string.
+// "documents/RR_16-2005.pdf"          → "RR_16-2005.pdf"
+// "C:\\tax_docs\\RMC_65-2012.pdf"     → "RMC_65-2012.pdf"
+// "RR_16-2005.pdf"                    → "RR_16-2005.pdf" (no-op)
+function safeBasename(p = "") {
+  return String(p || "").replace(/^.*[/\\]/, "");
+}
+
+// Strip filename suffixes and normalise an authority reference string.
+// "RR No. 16-2005 — RR_16-2005.pdf" → "RR No. 16-2005"
+// "NIRC-1997-RA-10963 (BIR).pdf"    → "NIRC / RA 10963"
+// "RR_16-2005"                       → "RR 16-2005"
+// "RMC_65-2012"                      → "RMC 65-2012"
+function cleanAuthorityRef(ref = "") {
+  return String(ref || "")
+    // Strip " — filename.ext" suffix (em-dash, en-dash, or hyphen separator).
+    // Hyphen placed at END of character class to avoid no-useless-escape lint error.
+    .replace(/\s+[—–-]{1,2}\s+\S+\.(pdf|docx?|txt|xlsx?|pptx?)\b.*/i, "")
+    // Strip bare ".ext" at end of string
+    .replace(/\.(pdf|docx?|txt|xlsx?|pptx?)\s*$/i, "")
+    // Remove "(BIR)" and similar parenthetical suffix tags
+    .replace(/\s*\(BIR\)\s*/gi, " ")
+    // Underscores → spaces  (RR_16-2005 → RR 16-2005)
+    .replace(/_/g, " ")
+    // NIRC-YYYY-RA-NNNNN compound filename → "NIRC / RA NNNNN"
+    .replace(/\bNIRC[-\s]+\d{4}[-\s]+RA[-\s]+(\d+)\b/i, "NIRC / RA $1")
+    // Collapse multiple spaces
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+// Authority-first display label for source chips.
+// Uses the authority/issuance reference fields set by pipeline.js sourceCards
+// construction (normalizedReference = inferIssuanceNumber → provRef).
+// Falls back to a cleaned title that strips the " — filename.ext" portion.
+function getAuthorityLabel(source = {}) {
+  const ref =
+    source.normalized_reference ||
+    source.normalizedReference   ||
+    source.citation              ||
+    source.reference             ||
+    source.authority_label       ||
+    source.authorityLabel        ||
+    source.sectionScope          ||
+    source.section_scope         ||
+    "";
+
+  if (ref.trim()) return cleanAuthorityRef(ref);
+
+  // Fallback: prefer document/title fields over raw path strings.
+  // For path-like fields (source, originalSource, path) strip directory so we
+  // never expose folder paths, chunk IDs, or retrieval-layer strings as labels.
+  const raw =
+    source.documentTitle                                                ||
+    source.document_title                                               ||
+    source.title                                                        ||
+    (source.source        ? safeBasename(source.source)        : "") ||
+    (source.originalSource ? safeBasename(source.originalSource) : "") ||
+    (source.path          ? safeBasename(source.path)          : "") ||
+    "";
+  return cleanAuthorityRef(raw) || "Source";
+}
+
 // Stable dedupe key for a source object.
-// Priority: normalized_reference → reference → title/source/filename → url → id
+// Priority: normalized_reference → citation/authority → reference →
+//           documentTitle/title → source/originalSource/filename → url → id → path
 function getDedupeKey(source = {}) {
   const raw =
     source.normalized_reference ||
-    source.normalizedReference ||
-    source.reference ||
-    source.title ||
-    source.document_title ||
-    source.source ||
-    source.filename ||
-    source.driveViewUrl ||
-    source.drive_view_url ||
-    source.url ||
-    source.href ||
-    source.id ||
+    source.normalizedReference  ||
+    source.citation             ||
+    source.authority_label      ||
+    source.authorityLabel       ||
+    source.sectionScope         ||
+    source.section_scope        ||
+    source.reference            ||
+    source.documentTitle        ||
+    source.document_title       ||
+    source.title                ||
+    (source.source        ? safeBasename(source.source)        : "") ||
+    (source.originalSource ? safeBasename(source.originalSource) : "") ||
+    source.filename             ||
+    source.driveViewUrl         ||
+    source.drive_view_url       ||
+    source.url                  ||
+    source.href                 ||
+    source.id                   ||
+    (source.sourcePath ? safeBasename(source.sourcePath) : "") ||
+    (source.path       ? safeBasename(source.path)       : "") ||
     "";
   return String(raw).trim().toLowerCase() || null;
 }
@@ -97,7 +170,8 @@ function normalizeSources(rawSources, { uncapped = false } = {}) {
   const filtered = rawSources
     .filter(Boolean)
     .filter((source) => !shouldHideSource(source))
-    .filter((source) => Boolean(getSourceHref(source)))
+    // URL presence is NOT required here — non-URL sources are shown as
+    // non-clickable authority chips in normal modes.
     .filter((source) => {
       const key = getDedupeKey(source);
       if (!key) return true;          // no stable key — cannot dedupe, keep
@@ -113,6 +187,55 @@ function normalizeFallbackReferences(rawFallbackReferences) {
   return Array.isArray(rawFallbackReferences)
     ? rawFallbackReferences.slice(0, 5)
     : [];
+}
+
+// Infer the originating command hook from a persisted message row.
+// Used by loadConversationMessages to restore section headings (LEGAL BASIS,
+// ANSWER BASIS, SOURCES) that would otherwise degrade to SOURCE after reload.
+//
+// Priority:
+//   1. row.hook / row.metadata?.hook    (if backend persists the hook field)
+//   2. row.route / row.command          (alternate persisted field names)
+//   3. Mode-field inference (commandMode, responseMode, mode, …)
+//   4. requiresSourceVisibility flag    → /source
+//   5. Default                          → /ask
+function inferHookFromRow(row = {}) {
+  // 1. Explicit stored hook or route
+  const explicit =
+    row.hook           ||
+    row.metadata?.hook ||
+    row.route          ||
+    row.command        ||
+    "";
+  if (explicit) {
+    const s = String(explicit).trim();
+    return s.startsWith("/") ? s : `/${s}`;
+  }
+
+  // 2. Mode-field inference
+  const mode = String(
+    row.commandMode        ||
+    row.command_mode       ||
+    row.responseMode       ||
+    row.response_mode      ||
+    row.orchestrationMode  ||
+    row.orchestration_mode ||
+    row.mode               ||
+    ""
+  ).toUpperCase();
+
+  if (mode.includes("REVIEW"))                              return "/review";
+  if (mode.includes("QUIZ") || mode.includes("DIAGNOSTIC")) return "/quiz";
+  if (mode.includes("SOURCE"))                              return "/source";
+  if (mode.includes("CASE"))                                return "/case";
+
+  // 3. Source-visibility flag implies /source
+  if (
+    row.requiresSourceVisibility  ||
+    row.requires_source_visibility
+  ) return "/source";
+
+  return "/ask";
 }
 
 // Defensive display-only strip: removes model-generated trailing source appendix
@@ -317,15 +440,32 @@ function App() {
           : Array.isArray(msg.sources)          ? msg.sources
           : [];
 
-        // Infer /source mode from stored source count: the backend caps
-        // non-/source modes to MAX_VISIBLE_SOURCES before persisting sourcesUsed.
-        // If the stored count exceeds MAX_VISIBLE_SOURCES it must have been
-        // a /source response stored before the cap was applied.
-        const requiresSourceVisibility = rawSources.length > MAX_VISIBLE_SOURCES;
+        // Derive the originating hook for TINA messages.
+        // Only meaningful for TINA turns; null for user bubbles.
+        const hook =
+          msg.role === "assistant" || msg.role === "tina"
+            ? inferHookFromRow(msg)
+            : null;
+
+        // Derive requiresSourceVisibility with strongest-signal priority:
+        //   1. Explicit persisted flags (most reliable)
+        //   2. Hook inference (e.g. inferred /source from mode fields)
+        //   3. Source count > cap (weak fallback only — misclassifies /source
+        //      messages with ≤ MAX_VISIBLE_SOURCES sources)
+        const requiresSourceVisibility =
+          Boolean(
+            msg.requiresSourceVisibility           ||
+            msg.requires_source_visibility         ||
+            msg.metadata?.requiresSourceVisibility ||
+            msg.metadata?.forceSourceVisibility
+          ) ||
+          hook === "/source" ||
+          rawSources.length > MAX_VISIBLE_SOURCES; // weak fallback
 
         return {
           role: msg.role === "assistant" ? "tina" : "user",
           content: msg.content || "",
+          hook,
           // sourceCards is a frontend-computed field, not persisted server-side.
           // Leave empty so the render-loop priority rule falls through to sources.
           sourceCards: [],
@@ -722,6 +862,9 @@ function App() {
         {
           role: "tina",
           content: data.answer || "TINA did not return an answer.",
+          // hook: used by the render loop to pick the section heading
+          // (SOURCE / LEGAL BASIS / ANSWER BASIS).
+          hook: data.hook || null,
           // sourceCards: only populated for non-/source modes; empty for /source
           // so the render-loop priority rule naturally falls through to sources.
           sourceCards: !isSourceMode && Array.isArray(data.sourceCards)
@@ -1178,6 +1321,16 @@ function App() {
             { uncapped: Boolean(msg.requiresSourceVisibility) }
           );
 
+          const isSourceMode = Boolean(msg.requiresSourceVisibility);
+          const sectionHeading =
+            isSourceMode
+              ? "SOURCES"
+              : msg.hook === "/review"
+                ? "LEGAL BASIS"
+                : msg.hook === "/quiz"
+                  ? "ANSWER BASIS"
+                  : "SOURCE";
+
           return (
             <div
               key={index}
@@ -1196,38 +1349,89 @@ function App() {
                   <EducationalSources data={msg.educationalSources} />
                 )}
 
-                {visibleSources.some(s => getSourceHref(s)) && (
+                {/* Normal mode: authority chips (clickable or non-clickable) */}
+                {!isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
-                    <strong>Sources:</strong>
+                    <strong>{sectionHeading}:</strong>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+                      {visibleSources.map((source, sourceIndex) => {
+                        const label = getAuthorityLabel(source);
+                        const href = getSourceHref(source);
+                        return href ? (
+                          <a
+                            key={getSourceKey(source, sourceIndex)}
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            style={{
+                              display: "inline-block",
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              border: "1px solid #1d4ed8",
+                              color: "#1d4ed8",
+                              fontSize: "0.78rem",
+                              fontWeight: 500,
+                              textDecoration: "none",
+                              whiteSpace: "nowrap",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {label}
+                          </a>
+                        ) : (
+                          <span
+                            key={getSourceKey(source, sourceIndex)}
+                            style={{
+                              display: "inline-block",
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              border: "1px solid #6b7280",
+                              color: "#6b7280",
+                              fontSize: "0.78rem",
+                              fontWeight: 500,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
+                {/* /source mode: full explorer list with full titles */}
+                {isSourceMode && visibleSources.length > 0 && (
+                  <div className="sources">
+                    <strong>{sectionHeading}:</strong>
                     <div style={{ marginTop: "8px" }}>
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getSourceLabel(source);
                         const href = getSourceHref(source);
-
-                        if (!href) return null;
-
                         return (
                           <div
                             key={getSourceKey(source, sourceIndex)}
-                            style={{
-                              marginBottom: "6px",
-                              lineHeight: "1.45"
-                            }}
+                            style={{ marginBottom: "6px", lineHeight: "1.45" }}
                           >
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noreferrer noopener"
-                              style={{
-                                color: "#1d4ed8",
-                                textDecoration: "underline",
-                                wordBreak: "break-word",
-                                cursor: "pointer"
-                              }}
-                            >
-                              {label}
-                            </a>
+                            {href ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                style={{
+                                  color: "#1d4ed8",
+                                  textDecoration: "underline",
+                                  wordBreak: "break-word",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                {label}
+                              </a>
+                            ) : (
+                              <span style={{ color: "#374151", wordBreak: "break-word" }}>
+                                {label}
+                              </span>
+                            )}
                           </div>
                         );
                       })}
