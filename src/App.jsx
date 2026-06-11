@@ -382,10 +382,19 @@ function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
 
   const bottomRef = useRef(null);
+  const composerRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
+
+  // Auto-grow the composer textarea with content; resets when input clears.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [question]);
 
   useEffect(() => {
     saveChatHistory(messages);
@@ -951,8 +960,11 @@ function App() {
     width: "100%",
     padding: "12px",
     marginBottom: "10px",
-    borderRadius: "10px",
-    border: "1px solid #ccc"
+    borderRadius: "12px",
+    border: "1px solid rgba(60, 60, 67, 0.22)",
+    fontFamily: "inherit",
+    fontSize: "15px",
+    background: "#ffffff"
   };
 
   const passwordWrapper = {
@@ -989,20 +1001,15 @@ function App() {
   if (!token) {
     return (
       <div className="app">
-        <div className="header">
-          <h1>TINA</h1>
-          <p>Tax Information Navigation Assistant</p>
-        </div>
+        <header className="header">
+          <div className="header-brand">
+            <h1>TINA</h1>
+            <p>Tax Information Navigation Assistant</p>
+          </div>
+        </header>
 
         <div className="chat-container">
-          <div
-            className="message-box"
-            style={{
-              width: "100%",
-              maxWidth: "420px",
-              margin: "60px auto"
-            }}
-          >
+          <div className="auth-card">
             <div className="message-label">LOGIN</div>
 
             <input
@@ -1100,13 +1107,7 @@ function App() {
               zIndex: 999
             }}
           >
-            <div
-              className="message-box"
-              style={{
-                width: "100%",
-                maxWidth: "420px"
-              }}
-            >
+            <div className="auth-card" style={{ margin: 0 }}>
               <div className="message-label">REGISTER</div>
 
               <input
@@ -1225,44 +1226,45 @@ function App() {
 
   return (
     <div className="app">
-      <div className="header">
-        <h1>TINA</h1>
-        <p>Tax Information Navigation Assistant</p>
-
-        <div className="topbar">
-          <div className="profile-wrapper">
-            <button
-              className="profile-button"
-              onClick={() => setShowProfileMenu(!showProfileMenu)}
-            >
-              {currentUser?.username || "User"} ▾
-            </button>
-
-            {showProfileMenu && (
-              <div className="profile-menu">
-                <button
-                  onClick={() => {
-                    setShowProfileModal(true);
-                    setShowProfileMenu(false);
-                  }}
-                >
-                  Profile
-                </button>
-
-                <button disabled>Upgrade</button>
-
-                {role === "admin" && (
-                  <button onClick={reindexDrive} disabled={indexing}>
-                    {indexing ? "Indexing..." : "Re-index"}
-                  </button>
-                )}
-
-                <button onClick={logout}>Logout</button>
-              </div>
-            )}
-          </div>
+      <header className="header">
+        <div className="header-brand">
+          <h1>TINA</h1>
+          <p>Tax Information Navigation Assistant</p>
         </div>
-      </div>
+
+        <div className="profile-wrapper">
+          <button
+            className="profile-button"
+            aria-expanded={showProfileMenu}
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+          >
+            {currentUser?.username || "User"} ▾
+          </button>
+
+          {showProfileMenu && (
+            <div className="profile-menu">
+              <button
+                onClick={() => {
+                  setShowProfileModal(true);
+                  setShowProfileMenu(false);
+                }}
+              >
+                Profile
+              </button>
+
+              <button disabled>Upgrade</button>
+
+              {role === "admin" && (
+                <button onClick={reindexDrive} disabled={indexing}>
+                  {indexing ? "Indexing..." : "Re-index"}
+                </button>
+              )}
+
+              <button onClick={logout}>Logout</button>
+            </div>
+          )}
+        </div>
+      </header>
 
       {showProfileModal && (
         <div className="modal-backdrop">
@@ -1336,13 +1338,13 @@ function App() {
               key={index}
               className={`message-row ${msg.role === "user" ? "user" : "tina"}`}
             >
-              {msg.role === "tina" && <div className="avatar">T</div>}
+              {msg.role === "tina" && (
+                <div className="tina-indicator" aria-hidden="true">
+                  T
+                </div>
+              )}
 
               <div className="message-box">
-                <div className="message-label">
-                  {msg.role === "user" ? "YOU" : "TINA"}
-                </div>
-
                 {renderMessageContent(msg)}
 
                 {msg.role === "tina" && visibleSources.length === 0 && (
@@ -1353,44 +1355,24 @@ function App() {
                 {!isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
                     <strong>{sectionHeading}:</strong>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "8px" }}>
+                    <div className="source-chips">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getAuthorityLabel(source);
                         const href = getSourceHref(source);
                         return href ? (
                           <a
                             key={getSourceKey(source, sourceIndex)}
+                            className="source-chip"
                             href={href}
                             target="_blank"
                             rel="noreferrer noopener"
-                            style={{
-                              display: "inline-block",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              border: "1px solid #1d4ed8",
-                              color: "#1d4ed8",
-                              fontSize: "0.78rem",
-                              fontWeight: 500,
-                              textDecoration: "none",
-                              whiteSpace: "nowrap",
-                              cursor: "pointer",
-                            }}
                           >
                             {label}
                           </a>
                         ) : (
                           <span
                             key={getSourceKey(source, sourceIndex)}
-                            style={{
-                              display: "inline-block",
-                              padding: "4px 10px",
-                              borderRadius: "12px",
-                              border: "1px solid #6b7280",
-                              color: "#6b7280",
-                              fontSize: "0.78rem",
-                              fontWeight: 500,
-                              whiteSpace: "nowrap",
-                            }}
+                            className="source-chip"
                           >
                             {label}
                           </span>
@@ -1404,33 +1386,25 @@ function App() {
                 {isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
                     <strong>{sectionHeading}:</strong>
-                    <div style={{ marginTop: "8px" }}>
+                    <div className="source-list">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getSourceLabel(source);
                         const href = getSourceHref(source);
                         return (
                           <div
                             key={getSourceKey(source, sourceIndex)}
-                            style={{ marginBottom: "6px", lineHeight: "1.45" }}
+                            className="source-list-item"
                           >
                             {href ? (
                               <a
                                 href={href}
                                 target="_blank"
                                 rel="noreferrer noopener"
-                                style={{
-                                  color: "#1d4ed8",
-                                  textDecoration: "underline",
-                                  wordBreak: "break-word",
-                                  cursor: "pointer",
-                                }}
                               >
                                 {label}
                               </a>
                             ) : (
-                              <span style={{ color: "#374151", wordBreak: "break-word" }}>
-                                {label}
-                              </span>
+                              <span>{label}</span>
                             )}
                           </div>
                         );
@@ -1450,19 +1424,20 @@ function App() {
                   </div>
                 )}
               </div>
-
-              {msg.role === "user" && (
-                <div className="avatar user-avatar">You</div>
-              )}
             </div>
           );
         })}
 
         {loading && (
-          <div className="message-row tina">
-            <div className="avatar">T</div>
+          <div
+            className="message-row tina"
+            role="status"
+            aria-label="TINA is typing"
+          >
+            <div className="tina-indicator" aria-hidden="true">
+              T
+            </div>
             <div className="message-box">
-              <div className="message-label">TINA</div>
               <div className="typing">
                 <span></span>
                 <span></span>
@@ -1478,18 +1453,43 @@ function App() {
       <div className="input-container">
         <div className="input-box">
           <textarea
+            ref={composerRef}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask TINA about Philippine tax rules, BIR issuances, or deadlines..."
-            rows={2}
+            rows={1}
+            aria-label="Message TINA"
           />
 
           <button
+            className="send-button"
             onClick={askTina}
             disabled={loading || bootstrappingConversation || !question.trim()}
+            aria-label={
+              loading || bootstrappingConversation
+                ? "TINA is responding"
+                : "Send message"
+            }
           >
-            {loading || bootstrappingConversation ? "..." : "Send"}
+            {loading || bootstrappingConversation ? (
+              <span className="send-spinner" aria-hidden="true" />
+            ) : (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 19V5" />
+                <path d="M5 12l7-7 7 7" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
