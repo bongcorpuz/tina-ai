@@ -1218,7 +1218,7 @@ function App() {
         )}
 
         <div className="footer">
-          Powered by <strong>&nbsp;Bong Corpuz &amp; Co. CPAs</strong>
+          Powered by <strong>&nbsp;BENTO PH</strong>
         </div>
       </div>
     );
@@ -1457,7 +1457,7 @@ function App() {
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask TINA about Philippine tax rules, BIR issuances, or deadlines..."
+            placeholder="Ask TINA..."
             rows={1}
             aria-label="Message TINA"
           />
@@ -1495,7 +1495,7 @@ function App() {
       </div>
 
       <div className="footer">
-        Powered by <strong>&nbsp;Bong Corpuz &amp; Co. CPAs</strong>
+        Powered by <strong>&nbsp;BENTO PH</strong>
       </div>
     </div>
   );
