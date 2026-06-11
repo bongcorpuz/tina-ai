@@ -12,6 +12,11 @@
 
 /* ================= HEADER (compact nav bar) ================= */
 .header {
+  /* Lift the header's backdrop-filter stacking context above the
+     chat-container scroll layer so the profile dropdown isn't covered
+     by message bubbles on iOS. */
+  position: relative;
+  z-index: 10;
   flex: none;
   display: flex;
   align-items: center;
