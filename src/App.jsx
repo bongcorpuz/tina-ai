@@ -60,12 +60,14 @@ function getSourceLabel(source = {}) {
 
 function getSourceHref(source = {}) {
   return (
-    source.driveViewUrl ||
-    source.drive_view_url ||
+    source.publicUrl       ||
+    source.public_url      ||
+    source.driveViewUrl    ||
+    source.drive_view_url  ||
     source.driveDownloadUrl ||
     source.drive_download_url ||
-    source.url ||
-    source.href ||
+    source.url             ||
+    source.href            ||
     null
   );
 }
