@@ -164,6 +164,50 @@
   color: var(--text-secondary);
 }
 
+.account-modal {
+  max-height: min(720px, calc(100dvh - 32px));
+  overflow-y: auto;
+}
+
+.account-modal-section {
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.account-modal-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.account-modal-section:last-child {
+  padding-bottom: 0;
+}
+
+.account-modal-section h2 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.account-modal-section p,
+.account-modal-section ul {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.account-modal-section ul {
+  padding-left: 18px;
+}
+
+.account-modal-section li {
+  margin-bottom: 4px;
+}
+
 /* ================= AUTH CARD (login / register) ================= */
 .auth-card {
   width: 100%;

@@ -382,6 +382,8 @@ function App() {
     useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const bottomRef = useRef(null);
   const composerRef = useRef(null);
@@ -406,6 +408,19 @@ function App() {
     if (!token || conversationId || bootstrappingConversation) return;
     void ensureConversation(token);
   }, [token, conversationId, bootstrappingConversation]);
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key !== "Escape") return;
+      setShowProfileMenu(false);
+      setShowProfileModal(false);
+      setShowSettingsModal(false);
+      setShowHelpModal(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, []);
 
   async function createConversationWithToken(authToken) {
     const res = await fetch(`${API_BASE}/conversations`, {
@@ -659,6 +674,8 @@ function App() {
     setCurrentUser({});
     setShowProfileMenu(false);
     setShowProfileModal(false);
+    setShowSettingsModal(false);
+    setShowHelpModal(false);
     setMessages([DEFAULT_WELCOME_MESSAGE]);
   };
 
@@ -1254,7 +1271,23 @@ function App() {
                 Profile
               </button>
 
-              <button disabled>Upgrade</button>
+              <button
+                onClick={() => {
+                  setShowSettingsModal(true);
+                  setShowProfileMenu(false);
+                }}
+              >
+                Settings
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowHelpModal(true);
+                  setShowProfileMenu(false);
+                }}
+              >
+                Help
+              </button>
 
               {role === "admin" && (
                 <button onClick={reindexDrive} disabled={indexing}>
@@ -1269,8 +1302,8 @@ function App() {
       </header>
 
       {showProfileModal && (
-        <div className="modal-backdrop">
-          <div className="profile-modal">
+        <div className="modal-backdrop" onClick={() => setShowProfileModal(false)}>
+          <div className="profile-modal" onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
               <strong>Profile</strong>
               <button onClick={() => setShowProfileModal(false)}>×</button>
@@ -1307,6 +1340,113 @@ function App() {
                 {conversationId || "Not initialized"}
               </strong>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSettingsModal && (
+        <div className="modal-backdrop" onClick={() => setShowSettingsModal(false)}>
+          <div className="profile-modal account-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <strong>Settings</strong>
+              <button onClick={() => setShowSettingsModal(false)}>×</button>
+            </div>
+
+            <section className="account-modal-section">
+              <h2>Billing</h2>
+              <div className="profile-row">
+                <span>Current plan</span>
+                <strong>Plan details not connected</strong>
+              </div>
+              <div className="profile-row">
+                <span>Upgrade plan</span>
+                <strong>Coming soon</strong>
+              </div>
+              <div className="profile-row">
+                <span>Billing management</span>
+                <strong>Not available yet</strong>
+              </div>
+              <p>Billing backend is not yet connected.</p>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>Security</h2>
+              <div className="profile-row">
+                <span>Account security</span>
+                <strong>Placeholder</strong>
+              </div>
+              <div className="profile-row">
+                <span>Password / authentication</span>
+                <strong>Not connected</strong>
+              </div>
+              <div className="profile-row">
+                <span>Sessions / devices</span>
+                <strong>Not connected</strong>
+              </div>
+              <p>Security management backend is not yet connected.</p>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>Login</h2>
+              <div className="profile-row">
+                <span>Signed in as</span>
+                <strong>{currentUser?.email || currentUser?.username || "-"}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Role</span>
+                <strong>{role || "user"}</strong>
+              </div>
+              <div className="profile-row">
+                <span>Session status</span>
+                <strong>{token ? "Active" : "Signed out"}</strong>
+              </div>
+              <p>Logout is available from the account menu.</p>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {showHelpModal && (
+        <div className="modal-backdrop" onClick={() => setShowHelpModal(false)}>
+          <div className="profile-modal account-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <strong>Help</strong>
+              <button onClick={() => setShowHelpModal(false)}>×</button>
+            </div>
+
+            <section className="account-modal-section">
+              <h2>Help Center</h2>
+              <ul>
+                <li>Ask TINA clear Philippine tax questions.</li>
+                <li>Include facts, dates, tax type, and taxpayer context when available.</li>
+                <li>Use specific authority references when you have them.</li>
+              </ul>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>Release Notes</h2>
+              <ul>
+                <li>TINA is under active development.</li>
+                <li>SAE V1 authority safety improvements are active.</li>
+              </ul>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>Keyboard Shortcuts</h2>
+              <ul>
+                <li>Enter to send.</li>
+                <li>Shift + Enter for a new line.</li>
+                <li>Esc closes the account menu or open modal.</li>
+              </ul>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>Report a Bug</h2>
+              <p>
+                Include the exact question, time asked, answer shown, and visible
+                source cards so the issue can be reproduced.
+              </p>
+            </section>
           </div>
         </div>
       )}
