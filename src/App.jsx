@@ -40,7 +40,7 @@ function TypingStatusIndicator({ isLoading, phrases = TYPING_STATUS_PHRASES }) {
 
     const intervalId = window.setInterval(() => {
       setPhraseIndex((current) => (current + 1) % safePhrases.length);
-    }, 1000);
+    }, 2800);
 
     return () => window.clearInterval(intervalId);
   }, [isLoading, safePhrases.length]);
