@@ -19,6 +19,39 @@ const DEFAULT_WELCOME_MESSAGE = {
   fallbackReferences: []
 };
 
+const TYPING_STATUS_PHRASES = [
+  "Checking the facts...",
+  "Finding the legal basis...",
+  "Reading the tax authority...",
+  "Matching the source cards...",
+  "Testing the issue classification...",
+  "Looking for controlling authority...",
+  "Reviewing NIRC, RR, RMC, and cases...",
+  "Shaping the answer...",
+  "Almost there..."
+];
+
+function TypingStatusIndicator({ isLoading, phrases = TYPING_STATUS_PHRASES }) {
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const safePhrases = phrases.length > 0 ? phrases : TYPING_STATUS_PHRASES;
+
+  useEffect(() => {
+    if (!isLoading) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      setPhraseIndex((current) => (current + 1) % safePhrases.length);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoading, safePhrases.length]);
+
+  return (
+    <div className="typing-status" aria-live="polite" key={phraseIndex}>
+      {safePhrases[phraseIndex]}
+    </div>
+  );
+}
+
 function shouldHideSource(source = {}) {
   const path = String(
     source?.path ||
@@ -1580,11 +1613,7 @@ function App() {
               T
             </div>
             <div className="message-box">
-              <div className="typing">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
+              <TypingStatusIndicator isLoading={loading} />
             </div>
           </div>
         )}
