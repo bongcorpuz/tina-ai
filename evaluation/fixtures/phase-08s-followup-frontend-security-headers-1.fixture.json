@@ -1,0 +1,155 @@
+{
+  "patch": {
+    "id": "PATCH-08S-FOLLOWUP-FRONTEND-SECURITY-HEADERS-1",
+    "phase": "Phase 8S follow-up (frontend hardening)",
+    "taskType": "frontend_security_headers_hardening",
+    "title": "Frontend Security Headers Hardening"
+  },
+  "decision": "FRONTEND SECURITY HEADERS FOLLOWUP PASS WITH STRICT RECOMMENDATIONS",
+  "baseCommit": "ef7d74d PATCH-UI-004 slow typing status rotation",
+  "backendClosureCommit": "ec7f455 PATCH-08X-CHAT-CONTEXT-CARRYOVER-FINAL-GATE-1 close chat context carryover",
+  "hardeningVersion": "1.0.0",
+  "nonRuntimeScope": {
+    "frontendConfigOnly": true,
+    "noBackendChange": true,
+    "noEnvChange": true,
+    "noDeployment": true,
+    "noRuntimeReactChange": true,
+    "noUiUxChange": true,
+    "noPackageChange": true,
+    "noDependencyInstall": true
+  },
+  "phaseStatus": {
+    "phase8Closed": true,
+    "phase8SClosed": true,
+    "phase8SReopened": false,
+    "phase08XClosed": true,
+    "phase9NotStarted": true,
+    "phase10Deferred": true,
+    "phase11Deferred": true,
+    "memoryInactive": true
+  },
+  "scannerFindings": [
+    { "severity": "HIGH", "finding": "Missing Content-Security-Policy Header", "addressed": true },
+    { "severity": "HIGH", "finding": "Missing X-Frame-Options Header", "addressed": true },
+    { "severity": "MEDIUM", "finding": "Missing X-Content-Type-Options Header", "addressed": true },
+    { "severity": "MEDIUM", "finding": "Missing Referrer-Policy Header", "addressed": true }
+  ],
+  "targetFrontend": {
+    "url": "https://tina-fawn.vercel.app",
+    "framework": "Vite + React",
+    "host": "Vercel",
+    "backendStagingApi": "https://tina-backend-staging.onrender.com"
+  },
+  "modifiedFiles": ["vercel.json"],
+  "createdFiles": [
+    "vercel.json",
+    "evaluation/fixtures/phase-08s-followup-frontend-security-headers-1.fixture.json",
+    "tests/patch-08s-followup-frontend-security-headers-1.test.mjs",
+    "PATCH-08S-FOLLOWUP-FRONTEND-SECURITY-HEADERS-1_FRONTEND_SECURITY_HEADERS_REPORT.md"
+  ],
+  "currentStateFile": {
+    "existsInFrontendRepo": false,
+    "created": false,
+    "note": "knowledge/CURRENT_STATE.md does not exist in the frontend repo and repo convention does not use it; not created. Recorded in the report instead."
+  },
+  "headersAdded": [
+    "Content-Security-Policy",
+    "X-Frame-Options",
+    "X-Content-Type-Options",
+    "Referrer-Policy",
+    "Permissions-Policy"
+  ],
+  "headerValues": {
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+  },
+  "cspPolicy": {
+    "source": "/(.*)",
+    "requiredDirectives": [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      "script-src 'self'",
+      "style-src 'self'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self' data: https:",
+      "connect-src 'self' https://tina-backend-staging.onrender.com",
+      "form-action 'self'",
+      "upgrade-insecure-requests"
+    ],
+    "notes": [
+      "'unsafe-inline' and 'unsafe-eval' included in script-src for Vite/React staging compatibility",
+      "'unsafe-inline' included in style-src for React inline styles",
+      "connect-src limited to self and the staging backend (no wildcard)",
+      "no wildcard default-src; no wildcard connect-src",
+      "frame-ancestors 'none' and X-Frame-Options DENY both block framing/clickjacking"
+    ]
+  },
+  "mergeBehavior": {
+    "vercelJsonExistedBefore": false,
+    "cleanCreate": true,
+    "preservedExistingConfig": "n/a (no prior vercel.json)",
+    "noDuplicateHeaderKeys": true
+  },
+  "securityCoverage": {
+    "clickjackingProtection": true,
+    "mimeSniffingProtection": true,
+    "referrerLeakageReduced": true,
+    "contentSecurityPolicyApplied": true,
+    "sensitivePermissionsDisabled": ["camera", "microphone", "geolocation"]
+  },
+  "limitations": [
+    "post-deploy verification still required (re-scan and browser console after Vercel deploy)",
+    "CSP may require tuning if legitimate third-party resources (fonts/analytics/auth/images) are blocked",
+    "this patch does not complete backend security headers, rate limits, /routes or /health minimization, x-powered-by suppression, INDEX_SECRET query-string removal, tenant isolation, logging redaction, or Langfuse/third-party egress controls",
+    "production readiness is not claimed; no deployment performed"
+  ],
+  "outOfScopeItems": [
+    "backend security headers",
+    "rate limits",
+    "/routes minimization",
+    "/health minimization",
+    "x-powered-by suppression",
+    "INDEX_SECRET query-string removal",
+    "tenant/client/matter isolation",
+    "logging redaction",
+    "third-party/Langfuse egress controls",
+    "request-size policy for Phase 9 document routes",
+    "Phase 9 implementation",
+    "production rollout"
+  ],
+  "validationMatrix": {
+    "requiredPassingTests": ["tests/patch-08s-followup-frontend-security-headers-1.test.mjs"],
+    "npmBuildOptional": true,
+    "npmTestOptional": true
+  },
+  "testCases": [
+    { "id": "vercel_json_valid", "expect": "vercel.json is valid JSON with a headers array and a /(.*) source" },
+    { "id": "required_headers_present", "expect": "CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy present" },
+    { "id": "header_values_exact", "expect": "X-Frame-Options DENY; X-Content-Type-Options nosniff; Referrer-Policy strict-origin-when-cross-origin" },
+    { "id": "csp_required_directives", "expect": "all required CSP directives present" },
+    { "id": "csp_no_wildcards", "expect": "no default-src * and no connect-src *" },
+    { "id": "phase_boundaries", "expect": "Phase 8S closed/not reopened; Phase 9 not started; memory inactive" }
+  ],
+  "prohibitedClaims": [
+    "production is fully hardened",
+    "Phase 8S is reopened",
+    "backend security is fixed",
+    "rate limiting is implemented",
+    "tenant isolation is implemented",
+    "production is deployed",
+    "Phase 9 started",
+    "all scanner findings are globally fixed"
+  ],
+  "nextTask": {
+    "recommendedNextOptions": [
+      "PHASE-09A-PROFESSIONAL-WORKFLOW-COPILOT-DESIGN-1",
+      "PATCH-08S-FOLLOWUP-BACKEND-SECURITY-HEADERS-RATE-LIMITS-1"
+    ],
+    "userChoosesPriority": true
+  }
+}
