@@ -1461,7 +1461,7 @@ function App() {
             >
               {msg.role === "tina" && (
                 <div className="tina-indicator" aria-hidden="true">
-                  T
+                  <img src={TINA_LOGO_SRC} alt="TINA logo" />
                 </div>
               )}
 
@@ -1556,7 +1556,7 @@ function App() {
             aria-label="TINA is typing"
           >
             <div className="tina-indicator" aria-hidden="true">
-              T
+              <img src={TINA_LOGO_SRC} alt="TINA logo" />
             </div>
             <div className="message-box">
               <TypingStatusIndicator isLoading={loading} />
