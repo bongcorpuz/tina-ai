@@ -6,8 +6,7 @@ import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chat
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE ||
-  ""
+  import.meta.env.VITE_API_BASE || "https://tina-backend-y11x.onrender.com"
 ).replace(/\/$/, "");
 
 const MAX_VISIBLE_SOURCES = 5;
@@ -1673,3 +1672,4 @@ function App() {
 }
 
 export default App;
+
