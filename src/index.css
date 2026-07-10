@@ -14,17 +14,21 @@ body,
 /* ================= DESIGN TOKENS ================= */
 :root {
   /* Color */
-  --bg: #f7f7f8;
+  --bg: #fafaf7;
   --surface: #ffffff;
-  --surface-2: #f0f0f2;
-  --text-primary: #1c1c1e;
-  --text-secondary: #6e6e73;
-  --text-tertiary: #98989d;
-  --accent: #1e3358;
-  --accent-soft: #eef1f7;
-  --hairline: rgba(60, 60, 67, 0.12);
-  --hairline-strong: rgba(60, 60, 67, 0.22);
-  --link: #1d4ed8;
+  --surface-2: #f4efe5;
+  --text-primary: #111114;
+  --text-secondary: #62666f;
+  --text-tertiary: #7d8087;
+  --accent: #0b0b0c;
+  --accent-soft: #f4e7c1;
+  --gold: #c9a227;
+  --gold-dark: #9a741e;
+  --charcoal: #171717;
+  --hairline: rgba(0, 0, 0, 0.1);
+  --hairline-strong: rgba(0, 0, 0, 0.16);
+  --dark-hairline: rgba(255, 255, 255, 0.12);
+  --link: #9a741e;
   --danger: #b91c1c;
   --success: #166534;
 

@@ -6,10 +6,12 @@ import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chat
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE || "https://tina-backend-y11x.onrender.com"
+  import.meta.env.VITE_API_BASE ||
+  "https://tina-backend-y11x.onrender.com"
 ).replace(/\/$/, "");
 
 const MAX_VISIBLE_SOURCES = 5;
+const TINA_LOGO_SRC = "/tina-logo.png";
 
 const DEFAULT_WELCOME_MESSAGE = {
   role: "tina",
@@ -1007,33 +1009,6 @@ function App() {
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "10px",
-    borderRadius: "12px",
-    border: "1px solid rgba(60, 60, 67, 0.22)",
-    fontFamily: "inherit",
-    fontSize: "15px",
-    background: "#ffffff"
-  };
-
-  const passwordWrapper = {
-    position: "relative",
-    width: "100%"
-  };
-
-  const toggleStyle = {
-    position: "absolute",
-    right: "12px",
-    top: "42%",
-    transform: "translateY(-50%)",
-    fontSize: "12px",
-    color: "#1e3358",
-    fontWeight: "bold",
-    cursor: "pointer"
-  };
-
   const renderMessageContent = (msg) => {
     if (msg.role !== "tina") {
       return <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || ""}</div>;
@@ -1051,92 +1026,82 @@ function App() {
 
   if (!token) {
     return (
-      <div className="app">
-        <header className="header">
-          <div className="header-brand">
-            <h1>TINA</h1>
-            <p>Tax Information Navigation Assistant</p>
+      <div className="app auth-app">
+        <header className="header auth-header">
+          <div className="header-brand app-brand-lockup">
+            <img className="brand-logo-small" src={TINA_LOGO_SRC} alt="TINA logo" />
+            <div>
+              <h1>TINA</h1>
+              <p>Tax Information Navigation Assistant</p>
+            </div>
           </div>
+          <span className="auth-header-note">Secure professional workspace</span>
         </header>
 
-        <div className="chat-container">
+        <div className="chat-container auth-container">
           <div className="auth-card">
-            <div className="message-label">LOGIN</div>
-
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              style={inputStyle}
-            />
-
-            <div style={passwordWrapper}>
-              <input
-                type={showLoginPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") login();
-                }}
-                style={{ ...inputStyle, paddingRight: "62px" }}
-              />
-
-              <span
-                style={toggleStyle}
-                onClick={() => setShowLoginPassword(!showLoginPassword)}
-              >
-                {showLoginPassword ? "Hide" : "Show"}
-              </span>
+            <div className="auth-brand-block">
+              <img className="auth-logo" src={TINA_LOGO_SRC} alt="TINA logo" />
+              <div>
+                <div className="message-label">Login</div>
+                <h2>Secure access to Philippine tax intelligence.</h2>
+                <p>
+                  Built for professional review, source-aware research, and
+                  authority-disciplined tax workflows.
+                </p>
+              </div>
             </div>
 
+            <label className="auth-field">
+              <span>Username</span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                autoComplete="username"
+              />
+            </label>
+
+            <label className="auth-field">
+              <span>Password</span>
+              <div className="auth-password-field">
+                <input
+                  type={showLoginPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") login();
+                  }}
+                />
+
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                >
+                  {showLoginPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </label>
+
             {loginError && (
-              <div
-                style={{
-                  color: "#b91c1c",
-                  marginBottom: "10px",
-                  fontSize: "13px"
-                }}
-              >
+              <div className="auth-message auth-message-error" role="alert">
                 {loginError}
               </div>
             )}
 
-            <button
-              onClick={login}
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "10px",
-                border: "none",
-                background: "#1e3358",
-                color: "white",
-                fontWeight: "bold",
-                cursor: "pointer"
-              }}
-            >
+            <button className="auth-submit" onClick={login}>
               Login
             </button>
 
-            <div
-              style={{
-                marginTop: "14px",
-                textAlign: "center",
-                fontSize: "13px"
-              }}
-            >
+            <div className="auth-switch">
               New user?{" "}
               <button
                 onClick={() => {
                   setShowRegister(true);
                   setRegisterMessage("");
-                }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#1e3358",
-                  fontWeight: "bold",
-                  cursor: "pointer"
                 }}
               >
                 Register
@@ -1146,129 +1111,108 @@ function App() {
         </div>
 
         {showRegister && (
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0,0,0,0.35)",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              padding: "16px",
-              zIndex: 999
-            }}
-          >
-            <div className="auth-card" style={{ margin: 0 }}>
-              <div className="message-label">REGISTER</div>
-
-              <input
-                value={registerUsername}
-                onChange={(e) => setRegisterUsername(e.target.value)}
-                placeholder="Username"
-                style={inputStyle}
-              />
-
-              <input
-                value={registerEmail}
-                onChange={(e) => setRegisterEmail(e.target.value)}
-                placeholder="Email address"
-                style={inputStyle}
-              />
-
-              <input
-                value={registerMobile}
-                onChange={(e) => setRegisterMobile(e.target.value)}
-                placeholder="Mobile phone"
-                style={inputStyle}
-              />
-
-              <input
-                value={registerCompany}
-                onChange={(e) => setRegisterCompany(e.target.value)}
-                placeholder="Company (optional)"
-                style={inputStyle}
-              />
-
-              <div style={passwordWrapper}>
-                <input
-                  type={showRegisterPassword ? "text" : "password"}
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  placeholder="Password"
-                  style={{ ...inputStyle, paddingRight: "62px" }}
-                />
-
-                <span
-                  style={toggleStyle}
-                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                >
-                  {showRegisterPassword ? "Hide" : "Show"}
-                </span>
+          <div className="auth-modal-backdrop">
+            <div className="auth-card auth-register-card">
+              <div className="auth-brand-block compact">
+                <img className="auth-logo" src={TINA_LOGO_SRC} alt="TINA logo" />
+                <div>
+                  <div className="message-label">Register</div>
+                  <h2>Create your TINA access.</h2>
+                  <p>Use your professional contact details for account setup.</p>
+                </div>
               </div>
 
-              <div
-                style={{
-                  fontSize: "11px",
-                  color: "#64748b",
-                  marginBottom: "10px",
-                  lineHeight: "1.4"
-                }}
-              >
+              <label className="auth-field">
+                <span>Username</span>
+                <input
+                  value={registerUsername}
+                  onChange={(e) => setRegisterUsername(e.target.value)}
+                  placeholder="Choose a username"
+                  autoComplete="username"
+                />
+              </label>
+
+              <label className="auth-field">
+                <span>Email address</span>
+                <input
+                  value={registerEmail}
+                  onChange={(e) => setRegisterEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                />
+              </label>
+
+              <label className="auth-field">
+                <span>Mobile phone</span>
+                <input
+                  value={registerMobile}
+                  onChange={(e) => setRegisterMobile(e.target.value)}
+                  placeholder="Mobile phone"
+                  autoComplete="tel"
+                />
+              </label>
+
+              <label className="auth-field">
+                <span>Company</span>
+                <input
+                  value={registerCompany}
+                  onChange={(e) => setRegisterCompany(e.target.value)}
+                  placeholder="Company (optional)"
+                  autoComplete="organization"
+                />
+              </label>
+
+              <label className="auth-field">
+                <span>Password</span>
+                <div className="auth-password-field">
+                  <input
+                    type={showRegisterPassword ? "text" : "password"}
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    placeholder="Create a password"
+                    autoComplete="new-password"
+                  />
+
+                  <button
+                    type="button"
+                    className="auth-password-toggle"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                  >
+                    {showRegisterPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </label>
+
+              <div className="auth-help-text">
                 OTP verification may be sent through your registered email and/or
                 mobile phone once activated by the administrator.
               </div>
 
               {registerMessage && (
                 <div
-                  style={{
-                    color: registerMessage.toLowerCase().includes("successful")
-                      ? "#166534"
-                      : "#b91c1c",
-                    marginBottom: "10px",
-                    fontSize: "13px"
-                  }}
+                  className={`auth-message ${
+                    registerMessage.toLowerCase().includes("successful")
+                      ? "auth-message-success"
+                      : "auth-message-error"
+                  }`}
+                  role="status"
                 >
                   {registerMessage}
                 </div>
               )}
 
-              <button
-                onClick={register}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: "#1e3358",
-                  color: "white",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  marginBottom: "8px"
-                }}
-              >
+              <button className="auth-submit" onClick={register}>
                 Register
               </button>
 
-              <button
-                onClick={() => setShowRegister(false)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  borderRadius: "10px",
-                  border: "1px solid #ccc",
-                  background: "#ffffff",
-                  color: "#1e3358",
-                  fontWeight: "bold",
-                  cursor: "pointer"
-                }}
-              >
+              <button className="auth-secondary" onClick={() => setShowRegister(false)}>
                 Cancel
               </button>
             </div>
           </div>
         )}
 
-        <div className="footer">
+        <div className="footer auth-footer">
           Powered by <strong>&nbsp;BENTO PH</strong>
         </div>
       </div>
@@ -1278,9 +1222,12 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <div className="header-brand">
-          <h1>TINA</h1>
-          <p>Tax Information Navigation Assistant</p>
+        <div className="header-brand app-brand-lockup">
+          <img className="brand-logo-small" src={TINA_LOGO_SRC} alt="TINA logo" />
+          <div>
+            <h1>TINA</h1>
+            <p>Tax Information Navigation Assistant</p>
+          </div>
         </div>
 
         <div className="profile-wrapper">
@@ -1672,4 +1619,3 @@ function App() {
 }
 
 export default App;
-
