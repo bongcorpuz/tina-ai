@@ -1,0 +1,142 @@
+{
+  "description": "PHASE-10A3-FRONTEND-TRUST-METADATA-CONSUMPTION-REMEDIATION-1 fixtures. `input` is fed directly to src/lib/trustPresentation.js buildTrustPresentation(); `expectedKind` (or null) and `expectedSeverity` record the required output. Trust enum values mirror tina-backend's services/trust-contract.js (PHASE-10A1/PHASE-10A1-R1/PHASE-10A2) exactly.",
+  "cases": [
+    {
+      "id": "1-verified-controlling",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_CONTROLLING", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NO_CONFLICT", "limitations": [], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "VERIFIED_CONTROLLING",
+      "expectedSeverity": "positive"
+    },
+    {
+      "id": "2-verified-supporting",
+      "note": "VERIFIED_SUPPORTING is reserved/currently unreachable in the live backend contract (documented in PHASE-10A1). This fixture proves the frontend handles it correctly IF the backend ever returns it, without presenting it as routinely available.",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_SUPPORTING", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NO_CONFLICT", "limitations": [], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "VERIFIED_SUPPORTING",
+      "expectedSeverity": "positive"
+    },
+    {
+      "id": "3-related-authority-only",
+      "input": { "version": "1.0", "authoritySupport": "RELATED_AUTHORITY_ONLY", "sourceState": "RELATED_AUTHORITY_ONLY", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": ["RELATED_AUTHORITY_ONLY"], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "RELATED_AUTHORITY_ONLY",
+      "expectedSeverity": "info"
+    },
+    {
+      "id": "4-no-verified-authority",
+      "input": { "version": "1.0", "authoritySupport": "NO_VERIFIED_AUTHORITY", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": [], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "NO_VERIFIED_AUTHORITY",
+      "expectedSeverity": "warning"
+    },
+    {
+      "id": "5-retrieval-timeout",
+      "input": { "version": "1.0", "authoritySupport": "NO_VERIFIED_AUTHORITY", "sourceState": "RETRIEVAL_TIMEOUT", "legalConclusion": "UNKNOWN", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": ["RETRIEVAL_TIMEOUT"], "responseKind": "FALLBACK" },
+      "expectedKind": "SOURCE_FAILURE",
+      "expectedSeverity": "warning",
+      "expectedLabel": "Source retrieval timed out"
+    },
+    {
+      "id": "6-source-lookup-empty",
+      "input": { "version": "1.0", "authoritySupport": "NO_VERIFIED_AUTHORITY", "sourceState": "SOURCE_LOOKUP_EMPTY", "legalConclusion": "UNKNOWN", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": ["SOURCE_LOOKUP_EMPTY"], "responseKind": "FALLBACK" },
+      "expectedKind": "SOURCE_FAILURE",
+      "expectedSeverity": "warning",
+      "expectedLabel": "No indexed source found"
+    },
+    {
+      "id": "7-source-parse-error",
+      "input": { "version": "1.0", "authoritySupport": "NO_VERIFIED_AUTHORITY", "sourceState": "SOURCE_PARSE_ERROR", "legalConclusion": "UNKNOWN", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": ["SOURCE_PARSE_ERROR"], "responseKind": "FALLBACK" },
+      "expectedKind": "SOURCE_FAILURE",
+      "expectedSeverity": "warning",
+      "expectedLabel": "Source could not be verified"
+    },
+    {
+      "id": "8-no-indexed-source",
+      "input": { "version": "1.0", "authoritySupport": "NO_VERIFIED_AUTHORITY", "sourceState": "NO_INDEXED_SOURCE", "legalConclusion": "UNKNOWN", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "UNKNOWN", "limitations": ["NO_INDEXED_SOURCE"], "responseKind": "FALLBACK" },
+      "expectedKind": "SOURCE_FAILURE",
+      "expectedSeverity": "warning",
+      "expectedLabel": "No indexed authority available"
+    },
+    {
+      "id": "9-potential-conflict",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_CONTROLLING", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "POTENTIAL_CONFLICT", "limitations": ["POTENTIAL_CONFLICT"], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "POTENTIAL_CONFLICT",
+      "expectedSeverity": "warning"
+    },
+    {
+      "id": "9b-potential-conflict-with-related-authority-secondary",
+      "note": "Required combination rule: potential conflict is primary, related authority only is secondary.",
+      "input": { "version": "1.0", "authoritySupport": "RELATED_AUTHORITY_ONLY", "sourceState": "RELATED_AUTHORITY_ONLY", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "POTENTIAL_CONFLICT", "limitations": ["POTENTIAL_CONFLICT", "RELATED_AUTHORITY_ONLY"], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "POTENTIAL_CONFLICT",
+      "expectedSeverity": "warning",
+      "expectedSecondaryLabel": "Related authority only"
+    },
+    {
+      "id": "10-verified-conflict",
+      "input": { "version": "1.0", "authoritySupport": "CONFLICTING_AUTHORITY", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": true, "conflictState": "VERIFIED_CONFLICT", "limitations": ["CONFLICTING_AUTHORITY"], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "VERIFIED_CONFLICT",
+      "expectedSeverity": "critical"
+    },
+    {
+      "id": "11-restricted-legal-conclusion",
+      "input": { "version": "1.0", "authoritySupport": "NOT_APPLICABLE", "sourceState": "NOT_APPLICABLE", "legalConclusion": "RESTRICTED", "humanReviewRequired": true, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NOT_APPLICABLE", "limitations": [], "responseKind": "RESTRICTED_LEGAL_CONCLUSION" },
+      "expectedKind": "RESTRICTED",
+      "expectedSeverity": "critical",
+      "expectedHumanReviewRequired": true
+    },
+    {
+      "id": "12-controlled-procedural",
+      "input": { "version": "1.0", "authoritySupport": "NOT_APPLICABLE", "sourceState": "NOT_APPLICABLE", "legalConclusion": "NOT_APPLICABLE", "humanReviewRequired": true, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NOT_APPLICABLE", "limitations": [], "responseKind": "CONTROLLED_PROCEDURAL" },
+      "expectedKind": "PROCEDURAL",
+      "expectedSeverity": "info",
+      "expectedHumanReviewRequired": true
+    },
+    {
+      "id": "13-human-review-attached-to-restricted",
+      "note": "Required combination rule: restricted + human review shows ONE restricted notice with human-review detail, not two banners.",
+      "input": { "version": "1.0", "authoritySupport": "NOT_APPLICABLE", "sourceState": "NOT_APPLICABLE", "legalConclusion": "RESTRICTED", "humanReviewRequired": true, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NOT_APPLICABLE", "limitations": [], "responseKind": "RESTRICTED_LEGAL_CONCLUSION" },
+      "expectedKind": "RESTRICTED",
+      "expectedHumanReviewRequired": true
+    },
+    {
+      "id": "14-domain-boundary-not-applicable",
+      "input": { "version": "1.0", "authoritySupport": "NOT_APPLICABLE", "sourceState": "NOT_APPLICABLE", "legalConclusion": "NOT_APPLICABLE", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NOT_APPLICABLE", "limitations": [], "responseKind": "DOMAIN_BOUNDARY" },
+      "expectedKind": null
+    },
+    {
+      "id": "15-missing-trust-object",
+      "input": null,
+      "expectedKind": null
+    },
+    {
+      "id": "15b-undefined-trust-object",
+      "input": "__UNDEFINED__",
+      "expectedKind": null
+    },
+    {
+      "id": "16-unknown-future-enum-value",
+      "note": "A hypothetical future backend enum value the frontend was never taught. Must degrade to UNKNOWN internally and render nothing, never crash, never guess.",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_ABSOLUTE_FUTURE_STATE", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NO_CONFLICT", "limitations": [], "responseKind": "GENERAL_TAX" },
+      "expectedKind": null
+    },
+    {
+      "id": "17-contradictory-trust-input",
+      "note": "hasConflict:true but conflictState:NO_CONFLICT (should never happen per backend Invariant 1, but the frontend must not crash or invent VERIFIED_CONFLICT from hasConflict alone -- it trusts conflictState, the categorical field, not the boolean).",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_CONTROLLING", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": true, "conflictState": "NO_CONFLICT", "limitations": [], "responseKind": "GENERAL_TAX" },
+      "expectedKind": "VERIFIED_CONTROLLING",
+      "expectedSeverity": "positive"
+    },
+    {
+      "id": "17b-contradictory-malformed-limitations",
+      "note": "limitations is not an array (malformed). Must not crash.",
+      "input": { "version": "1.0", "authoritySupport": "VERIFIED_CONTROLLING", "sourceState": "AUTHORITY_FOUND", "legalConclusion": "ALLOWED", "humanReviewRequired": false, "filingReadyDocumentGenerated": false, "automaticSubmission": false, "hasConflict": false, "conflictState": "NO_CONFLICT", "limitations": "not-an-array", "responseKind": "GENERAL_TAX" },
+      "expectedKind": "VERIFIED_CONTROLLING",
+      "expectedSeverity": "positive"
+    }
+  ],
+  "sourceCardRoleCases": [
+    { "id": "18a-statute", "input": { "authorityType": "STATUTE" }, "expectedLabel": "Statute" },
+    { "id": "18b-jurisprudence", "input": { "authorityType": "JURISPRUDENCE" }, "expectedLabel": "Case Law" },
+    { "id": "18c-cta-case-law", "input": { "authorityType": "CTA" }, "expectedLabel": "Case Law" },
+    { "id": "18d-ruling", "input": { "authority_type": "BIR_RULING" }, "expectedLabel": "Ruling" },
+    { "id": "18e-unknown-type", "input": { "authorityType": "SOMETHING_NEW" }, "expectedLabel": null },
+    { "id": "18f-missing-type", "input": {}, "expectedLabel": null }
+  ]
+}

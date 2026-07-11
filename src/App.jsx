@@ -3,6 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "./App.css";
 import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chatStorage";
+import TrustBanner from "./components/TrustBanner";
+import SourceTrustSummary from "./components/SourceTrustSummary";
+import { getAuthorityTypeLabel } from "./lib/trustPresentation";
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
@@ -538,7 +541,12 @@ function App() {
                 ? msg.fallback_references
                 : []
           ),
-          educationalSources: msg.educationalSources || null
+          educationalSources: msg.educationalSources || null,
+          // trust: PHASE-10A3. The backend does not persist `trust` on the
+          // messages table, so reloaded/historical conversation turns never
+          // carry it. TrustBanner/SourceTrustSummary render nothing for
+          // these messages -- known, documented limitation, not a bug.
+          trust: null
         };
       });
 
@@ -942,7 +950,12 @@ function App() {
                 ? data.fallback_references
                 : []
           ),
-          educationalSources: data.educationalSources || null
+          educationalSources: data.educationalSources || null,
+          // trust: PHASE-10A3. Only present on the live current-turn response
+          // -- the backend does not persist it, so reloaded conversation
+          // history never has this field. TrustBanner/SourceTrustSummary
+          // both tolerate its absence safely (render nothing).
+          trust: data.trust || null
         }
       ]);
     } catch {
@@ -1468,6 +1481,8 @@ function App() {
               <div className="message-box">
                 {renderMessageContent(msg)}
 
+                {msg.role === "tina" && <TrustBanner trust={msg.trust} />}
+
                 {msg.role === "tina" && visibleSources.length === 0 && (
                   <EducationalSources data={msg.educationalSources} />
                 )}
@@ -1475,11 +1490,14 @@ function App() {
                 {/* Normal mode: authority chips (clickable or non-clickable) */}
                 {!isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
-                    <strong>{sectionHeading}:</strong>
+                    <strong>
+                      {sectionHeading}:<SourceTrustSummary trust={msg.trust} />
+                    </strong>
                     <div className="source-chips">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getAuthorityLabel(source);
                         const href = getSourceHref(source);
+                        const typeLabel = getAuthorityTypeLabel(source);
                         return href ? (
                           <a
                             key={getSourceKey(source, sourceIndex)}
@@ -1487,6 +1505,7 @@ function App() {
                             href={href}
                             target="_blank"
                             rel="noreferrer noopener"
+                            title={typeLabel || undefined}
                           >
                             {label}
                           </a>
@@ -1494,6 +1513,7 @@ function App() {
                           <span
                             key={getSourceKey(source, sourceIndex)}
                             className="source-chip"
+                            title={typeLabel || undefined}
                           >
                             {label}
                           </span>
@@ -1506,7 +1526,9 @@ function App() {
                 {/* /source mode: full explorer list with full titles */}
                 {isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
-                    <strong>{sectionHeading}:</strong>
+                    <strong>
+                      {sectionHeading}:<SourceTrustSummary trust={msg.trust} />
+                    </strong>
                     <div className="source-list">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getSourceLabel(source);
