@@ -940,6 +940,7 @@ a.source-chip:hover {
    non-color text marker + label, never by color alone. Restrained: no
    flashing, no oversized banners, no more than one primary notice. */
 .trust-banner {
+  --trust-warning-ink: #735313;
   margin-top: 10px;
   margin-bottom: 4px;
   padding: 10px 12px;
@@ -954,6 +955,7 @@ a.source-chip:hover {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .trust-banner-marker {
@@ -976,6 +978,8 @@ a.source-chip:hover {
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-primary);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .trust-banner-secondary {
@@ -985,6 +989,8 @@ a.source-chip:hover {
   padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid var(--hairline-strong);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .trust-banner-review-tag {
@@ -994,9 +1000,11 @@ a.source-chip:hover {
   letter-spacing: 0.03em;
   padding: 2px 8px;
   border-radius: 999px;
-  color: var(--gold-dark);
-  border: 1px solid var(--gold-dark);
+  color: var(--trust-warning-ink);
+  border: 1px solid var(--trust-warning-ink);
   background: var(--accent-soft);
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .trust-banner-description {
@@ -1018,12 +1026,12 @@ a.source-chip:hover {
 }
 
 .trust-banner-warning {
-  border-color: var(--gold-dark);
+  border-color: var(--trust-warning-ink);
   background: var(--accent-soft);
 }
 .trust-banner-warning .trust-banner-marker {
-  color: var(--gold-dark);
-  border-color: var(--gold-dark);
+  color: var(--trust-warning-ink);
+  border-color: var(--trust-warning-ink);
 }
 
 .trust-banner-info {

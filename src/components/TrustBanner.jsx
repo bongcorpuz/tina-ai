@@ -3,20 +3,15 @@
 //
 // Renders one consolidated trust panel per message, built from
 // src/lib/trustPresentation.js's buildTrustPresentation(). Never renders
-// more than one primary notice at a time (priority order is resolved
-// upstream in trustPresentation.js), uses non-color text markers alongside
-// severity color so the state is never conveyed by color alone, and
-// renders nothing when there is no trust signal to show.
+// more than one primary notice at a time, and never relies on color alone.
 
 import { buildTrustPresentation, TRUST_KIND } from "../lib/trustPresentation";
 
-// Short, non-color text markers -- accessible without relying on color
-// perception, and restrained (no emoji-heavy alarm styling).
 const SEVERITY_MARKER = {
   critical: "!",
-  warning: "△", // small triangle
+  warning: "!",
   info: "i",
-  positive: "✓" // check mark
+  positive: "OK"
 };
 
 const KIND_TEST_ID = {
@@ -36,12 +31,13 @@ export default function TrustBanner({ trust }) {
   if (!presentation) return null;
 
   const { kind, severity, label, description, secondaryLabel, humanReviewRequired } = presentation;
+  const liveRole = severity === "critical" || severity === "warning" ? "alert" : "status";
 
   return (
     <div
       className={`trust-banner trust-banner-${severity}`}
       data-trust-kind={KIND_TEST_ID[kind] || "unknown"}
-      role={severity === "critical" ? "alert" : "status"}
+      role={liveRole}
     >
       <div className="trust-banner-row">
         <span className="trust-banner-marker" aria-hidden="true">

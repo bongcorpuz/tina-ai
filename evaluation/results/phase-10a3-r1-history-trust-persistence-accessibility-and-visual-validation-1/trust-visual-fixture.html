@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PHASE-10A3-R1 Trust Visual Fixture</title>
+  <link rel="stylesheet" href="../../../src/index.css">
+  <link rel="stylesheet" href="../../../src/App.css">
+  <style>
+    body { margin: 0; padding: 24px; background: var(--bg); }
+    main { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
+    .message { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius-s); padding: 14px; }
+    .message p { margin: 8px 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.45; }
+    .source-heading { margin-top: 10px; font-size: 11px; text-transform: uppercase; color: var(--text-secondary); }
+    .source-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .source-chip { border: 1px solid var(--hairline-strong); border-radius: var(--radius-s); padding: 5px 7px; font-size: 11px; color: var(--text-secondary); max-width: 100%; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main aria-label="Sanitized trust-state visual validation fixture">
+    <section class="message" data-case="restricted-before-reload">
+      <div class="trust-banner trust-banner-critical" data-trust-kind="restricted" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">Final legal conclusion not provided</span><span class="trust-banner-review-tag">Human review required</span></div>
+        <p class="trust-banner-description">TINA does not provide a final validity, voidness, or outcome determination for this question. Human tax/legal review is required.</p>
+      </div>
+      <p>Before reload: restricted trust metadata is present.</p>
+    </section>
+    <section class="message" data-case="restricted-after-reload">
+      <div class="trust-banner trust-banner-critical" data-trust-kind="restricted" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">Final legal conclusion not provided</span><span class="trust-banner-review-tag">Human review required</span></div>
+        <p class="trust-banner-description">After reload: the same persisted trust metadata remains visible.</p>
+      </div>
+    </section>
+    <section class="message" data-case="verified-conflict">
+      <div class="trust-banner trust-banner-critical" data-trust-kind="verified-conflict" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">Conflicting authorities identified</span></div>
+        <p class="trust-banner-description">TINA identified genuinely conflicting authorities for this synthetic question.</p>
+      </div>
+    </section>
+    <section class="message" data-case="potential-conflict">
+      <div class="trust-banner trust-banner-warning" data-trust-kind="potential-conflict" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">Possible authority conflict</span><span class="trust-banner-secondary">Related authority only</span></div>
+        <p class="trust-banner-description">TINA detected incomplete or potentially inconsistent authority evidence.</p>
+      </div>
+    </section>
+    <section class="message" data-case="source-limitation">
+      <div class="trust-banner trust-banner-warning" data-trust-kind="source-failure" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">Source retrieval timed out</span></div>
+        <p class="trust-banner-description">TINA could not complete source retrieval in time for this answer.</p>
+      </div>
+    </section>
+    <section class="message" data-case="related-authority">
+      <div class="trust-banner trust-banner-info" data-trust-kind="related-authority-only" role="status">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">i</span><span class="trust-banner-label">Related authority only</span></div>
+        <p class="trust-banner-description">The sources shown are relevant but may not directly control this issue.</p>
+      </div>
+      <div class="source-heading">SOURCES:<span class="source-trust-qualifier"> - Related authority only</span></div>
+      <div class="source-chip-row"><span class="source-chip">A deliberately long authority label that wraps without horizontal overflow on mobile viewport widths</span></div>
+    </section>
+    <section class="message" data-case="verified-authority">
+      <div class="trust-banner trust-banner-positive" data-trust-kind="verified-controlling" role="status">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">OK</span><span class="trust-banner-label">Verified controlling authority</span></div>
+        <p class="trust-banner-description">This answer is grounded in verified controlling authority. This is not a final legal opinion.</p>
+      </div>
+    </section>
+    <section class="message" data-case="procedural">
+      <div class="trust-banner trust-banner-info" data-trust-kind="procedural" role="status">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">i</span><span class="trust-banner-label">Procedural guidance</span></div>
+        <p class="trust-banner-description">This response helps organize facts, documents, and next steps.</p>
+      </div>
+    </section>
+    <section class="message" data-case="legacy-no-trust">
+      <p>Legacy history without trust renders no false verified state and no trust banner.</p>
+    </section>
+    <section class="message" data-case="empty-source-cards">
+      <div class="trust-banner trust-banner-warning" data-trust-kind="no-verified-authority" role="alert">
+        <div class="trust-banner-row"><span class="trust-banner-marker" aria-hidden="true">!</span><span class="trust-banner-label">No verified authority found</span></div>
+        <p class="trust-banner-description">Source verification may be incomplete.</p>
+      </div>
+      <div class="source-heading">SOURCES:</div>
+    </section>
+  </main>
+  <script>
+    window.addEventListener("load", () => {
+      const metrics = {
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        alertCount: document.querySelectorAll('[role="alert"]').length,
+        statusCount: document.querySelectorAll('[role="status"]').length,
+        trustBannerCount: document.querySelectorAll(".trust-banner").length
+      };
+      document.documentElement.dataset.metrics = JSON.stringify(metrics);
+    });
+  </script>
+</body>
+</html>

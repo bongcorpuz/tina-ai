@@ -248,9 +248,12 @@ await test("TrustBanner.jsx and SourceTrustSummary.jsx import and call the real 
     "SourceTrustSummary.jsx imports normalizeTrust from the real presentation module");
 });
 
-await test("App.jsx captures data.trust from the live response and tolerates its absence on reloaded history", () => {
+await test("App.jsx captures live data.trust and restores persisted trust on reloaded history", () => {
   const appSrc = readFileSync(resolve(APP_PATH), "utf8");
   check(appSrc.includes("trust: data.trust || null"), "App.jsx captures data.trust on the live /ask response");
+  check(appSrc.includes("function normalizeReloadedTrust"), "App.jsx defines reloaded trust normalization");
+  check(appSrc.includes("row.trust || row.metadata?.trust || null"), "App.jsx reads both top-level and metadata trust from history rows");
+  check(appSrc.includes("trust: normalizeReloadedTrust(msg)"), "App.jsx attaches restored trust to reconstructed messages");
   check(appSrc.includes("<TrustBanner trust={msg.trust} />"), "App.jsx renders TrustBanner for each tina message");
   check(appSrc.includes("<SourceTrustSummary trust={msg.trust} />"), "App.jsx renders SourceTrustSummary next to the source heading");
   check(appSrc.includes('import TrustBanner from "./components/TrustBanner"'), "App.jsx imports TrustBanner");

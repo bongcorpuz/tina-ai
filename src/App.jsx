@@ -228,6 +228,13 @@ function normalizeFallbackReferences(rawFallbackReferences) {
     : [];
 }
 
+function normalizeReloadedTrust(row = {}) {
+  const candidate = row.trust || row.metadata?.trust || null;
+  return candidate && typeof candidate === "object" && !Array.isArray(candidate)
+    ? candidate
+    : null;
+}
+
 // Infer the originating command hook from a persisted message row.
 // Used by loadConversationMessages to restore section headings (LEGAL BASIS,
 // ANSWER BASIS, SOURCES) that would otherwise degrade to SOURCE after reload.
@@ -542,11 +549,7 @@ function App() {
                 : []
           ),
           educationalSources: msg.educationalSources || null,
-          // trust: PHASE-10A3. The backend does not persist `trust` on the
-          // messages table, so reloaded/historical conversation turns never
-          // carry it. TrustBanner/SourceTrustSummary render nothing for
-          // these messages -- known, documented limitation, not a bug.
-          trust: null
+          trust: normalizeReloadedTrust(msg)
         };
       });
 

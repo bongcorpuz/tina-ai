@@ -1,0 +1,51 @@
+{
+  "phase": "PHASE-10A3-R1-HISTORY-TRUST-PERSISTENCE-ACCESSIBILITY-AND-VISUAL-VALIDATION-1",
+  "date": "2026-07-11",
+  "evidenceType": "sanitized local rendered Chrome screenshots",
+  "productionApiCalled": false,
+  "containsSecrets": false,
+  "fixture": "trust-visual-fixture.html",
+  "screenshots": {
+    "mobile320": "320px.png",
+    "mobile375": "375px.png",
+    "mobile430": "430px.png",
+    "tablet": "tablet.png",
+    "desktop": "desktop.png"
+  },
+  "statesCovered": [
+    "restricted before reload",
+    "restricted after reload",
+    "verified conflict",
+    "potential conflict",
+    "source limitation",
+    "related authority",
+    "verified authority",
+    "procedural guidance",
+    "legacy no trust",
+    "empty source cards",
+    "long authority label"
+  ],
+  "contrast": {
+    "before": {
+      "foreground": "#9a741e",
+      "background": "#f4e7c1",
+      "ratio": "3.49:1"
+    },
+    "after": {
+      "foreground": "#735313",
+      "background": "#f4e7c1",
+      "ratio": "5.73:1"
+    }
+  },
+  "commands": {
+    "focusedFrontend": "node tests/phase-10a3-r1-history-trust-persistence-accessibility-and-visual-validation-1.test.mjs",
+    "phase10a3Frontend": "node tests/phase-10a3-frontend-trust-metadata-consumption-remediation-1.test.mjs",
+    "lint": "npm run lint",
+    "build": "npm run build",
+    "screenshots": "chrome --headless=new --window-size=<viewport> --screenshot=<file> trust-visual-fixture.html"
+  },
+  "knownLimitations": [
+    "Screenshots are sanitized local fixture renderings using app CSS classes, not authenticated Vercel staging screenshots.",
+    "Vercel production/staging branch mapping was not available from local config."
+  ]
+}
