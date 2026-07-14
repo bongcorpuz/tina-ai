@@ -21,6 +21,7 @@ const KIND_TEST_ID = {
   [TRUST_KIND.SOURCE_FAILURE]: "source-failure",
   [TRUST_KIND.NO_VERIFIED_AUTHORITY]: "no-verified-authority",
   [TRUST_KIND.RELATED_AUTHORITY_ONLY]: "related-authority-only",
+  [TRUST_KIND.SPECIFIC_AUTHORITY_NOT_FOUND]: "specific-authority-not-found",
   [TRUST_KIND.VERIFIED_CONTROLLING]: "verified-controlling",
   [TRUST_KIND.VERIFIED_SUPPORTING]: "verified-supporting",
   [TRUST_KIND.PROCEDURAL]: "procedural"

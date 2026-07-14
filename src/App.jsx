@@ -1446,6 +1446,8 @@ function App() {
         </div>
       )}
 
+      <main className="chat-main" aria-label="TINA conversation">
+      <h2 className="visually-hidden">Conversation</h2>
       <div className="chat-container">
         {messages.map((msg, index) => {
           // Single visible source truth: prefer sourceCards (deduped, authority-ranked,
@@ -1635,10 +1637,11 @@ function App() {
           </button>
         </div>
       </div>
+      </main>
 
-      <div className="footer">
+      <footer className="footer">
         Powered by <strong>&nbsp;BENTO PH</strong>
-      </div>
+      </footer>
     </div>
   );
 }

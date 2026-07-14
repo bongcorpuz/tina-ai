@@ -19,16 +19,24 @@ body,
   --surface-2: #f4efe5;
   --text-primary: #111114;
   --text-secondary: #62666f;
-  --text-tertiary: #7d8087;
+  /* PHASE-10A4C: darkened from #7d8087 (3.95:1 on white, axe-flagged
+     serious color-contrast violation on .sources > strong / .footer /
+     .header-brand p) to #5a5d64 (6.59:1 on white, 6.31:1 on --bg
+     #fafaf7) -- comfortable margin above the 4.5:1 WCAG AA threshold. */
+  --text-tertiary: #5a5d64;
   --accent: #0b0b0c;
   --accent-soft: #f4e7c1;
   --gold: #c9a227;
-  --gold-dark: #9a741e;
+  /* PHASE-10A4C: darkened from #9a741e (4.29:1 on white, axe-flagged) to
+     #735313 (7.06:1 on white) -- reuses the same darker-gold value already
+     established for the PHASE-10A3-R1 trust-banner-warning contrast fix
+     (#735313 on #f4e7c1 = 5.73:1), for brand consistency. */
+  --gold-dark: #735313;
   --charcoal: #171717;
   --hairline: rgba(0, 0, 0, 0.1);
   --hairline-strong: rgba(0, 0, 0, 0.16);
   --dark-hairline: rgba(255, 255, 255, 0.12);
-  --link: #9a741e;
+  --link: #735313;
   --danger: #b91c1c;
   --success: #166534;
 

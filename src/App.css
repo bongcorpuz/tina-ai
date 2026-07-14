@@ -1,3 +1,25 @@
+/* ================= ACCESSIBILITY UTILITIES ================= */
+/* PHASE-10A4C: standard visually-hidden pattern -- content remains in the
+   accessibility tree (announced by screen readers) but is not visible. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
 /* ================= APP SHELL ================= */
 /* Header / scrollable message area / composer / footer caption,
    all in normal flow. No fixed positioning. */

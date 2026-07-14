@@ -65,6 +65,13 @@ export const TRUST_KIND = Object.freeze({
   SOURCE_FAILURE: "SOURCE_FAILURE",
   NO_VERIFIED_AUTHORITY: "NO_VERIFIED_AUTHORITY",
   RELATED_AUTHORITY_ONLY: "RELATED_AUTHORITY_ONLY",
+  // PHASE-10A4C: distinct sub-kind of RELATED_AUTHORITY_ONLY (Case C
+  // trust-calibration remediation) -- reuses the RELATED_AUTHORITY_ONLY
+  // authoritySupport value but renders with amber/warning emphasis and a
+  // more specific label, since a plain "related authority only" info banner
+  // did not sufficiently distinguish "the specific requested issuance was
+  // not found" from an ordinary broad/general query.
+  SPECIFIC_AUTHORITY_NOT_FOUND: "SPECIFIC_AUTHORITY_NOT_FOUND",
   VERIFIED_CONTROLLING: "VERIFIED_CONTROLLING",
   VERIFIED_SUPPORTING: "VERIFIED_SUPPORTING",
   PROCEDURAL: "PROCEDURAL"
@@ -132,6 +139,11 @@ export function normalizeTrust(trust) {
     responseKind: ["CONTROLLED_PROCEDURAL", "RESTRICTED_LEGAL_CONCLUSION", "GENERAL_TAX", "DOMAIN_BOUNDARY", "FALLBACK"].includes(t.responseKind)
       ? t.responseKind
       : "UNKNOWN",
+    // PHASE-10A4C: additive qualifier, true only when authoritySupport is
+    // RELATED_AUTHORITY_ONLY because the answer's own prose disclaimed a
+    // specific requested issuance/ruling/regulation/circular (backend
+    // services/trust-contract.js enforces this can never be true otherwise).
+    specificAuthorityNotFound: t.specificAuthorityNotFound === true,
     present: isPlainObject(trust)
   };
 }
@@ -233,6 +245,23 @@ export function buildTrustPresentation(rawTrust) {
 
   // Tier 5: related authority only.
   if (trust.authoritySupport === "RELATED_AUTHORITY_ONLY") {
+    // PHASE-10A4C Case C remediation: when the answer's own prose disclaimed
+    // a specific requested issuance/ruling/regulation/circular, render a
+    // visibly distinct, more prominent amber state rather than the generic
+    // info-level "related authority only" copy, so a user cannot mistake
+    // general authority backing for verification of the specific document
+    // they asked about.
+    if (trust.specificAuthorityNotFound) {
+      return {
+        ...base,
+        kind: TRUST_KIND.SPECIFIC_AUTHORITY_NOT_FOUND,
+        severity: SEVERITY.WARNING,
+        label: "Specific issuance not found",
+        description:
+          "The specific issuance, ruling, regulation, or circular you asked about was not found or could not be verified. This answer relies on general authorities cited below, which support the general explanation -- not the existence of the specific document requested.",
+        secondaryLabel: "Grounded in general law"
+      };
+    }
     return {
       ...base,
       kind: TRUST_KIND.RELATED_AUTHORITY_ONLY,
