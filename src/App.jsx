@@ -1456,7 +1456,7 @@ function App() {
 
       <main className="chat-main" aria-label="TINA conversation">
       <h2 className="visually-hidden">Conversation</h2>
-      <div className="chat-container">
+      <div className="chat-container" tabIndex={0} aria-label="Message history, scrollable">
         {messages.map((msg, index) => {
           // Single visible source truth: prefer sourceCards (deduped, authority-ranked,
           // max-5 from backend) over sources. For /source messages, sourceCards is
