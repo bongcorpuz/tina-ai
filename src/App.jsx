@@ -726,6 +726,10 @@ function App() {
 
   const SLASH_COMMAND_ENDPOINTS = {
     "/ask": "/ask",
+    // PHASE-10A4C: routes to /ask, where the staging-only fixture
+    // short-circuit lives (services/staging-trust-fixtures.js). Fails
+    // closed on any non-staging backend runtime -- harmless outside staging.
+    "/fixture": "/ask",
     "/tax": "/tax",
     "/review": "/review",
     "/quiz": "/quiz",
@@ -800,6 +804,10 @@ function App() {
       cleanQuestion: command ? cleanQuestion : text,
       detectedCommand: command || null,
       conversationId: activeConversationId,
+      // PHASE-10A4C: "/fixture <FIXTURE-ID>" passes the fixture ID through
+      // to the backend's staging-only fixture resolver. No effect on any
+      // other command; ignored entirely if the backend is not staging.
+      ...(command === "/fixture" ? { fixtureId: cleanQuestion } : {}),
       ...modeMeta
     };
   };
