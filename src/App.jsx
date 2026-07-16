@@ -6,6 +6,7 @@ import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chat
 import TrustBanner from "./components/TrustBanner";
 import SourceTrustSummary from "./components/SourceTrustSummary";
 import { getAuthorityTypeLabel } from "./lib/trustPresentation";
+import { TINA_BRAND } from "./config/brand";
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
@@ -18,7 +19,7 @@ const TINA_LOGO_SRC = "/tina-logo.png";
 
 const DEFAULT_WELCOME_MESSAGE = {
   role: "tina",
-  content: "Hi, I’m TINA. Ask me about Philippine tax matters...",
+  content: "Hi, I'm TINA, the Philippine Tax Intelligence Platform. Ask me about Philippine tax matters, and I'll answer with source-aware research support.",
   sources: [],
   fallbackReferences: []
 };
@@ -53,6 +54,26 @@ function TypingStatusIndicator({ isLoading, phrases = TYPING_STATUS_PHRASES }) {
     <div className="typing-status" aria-live="polite" key={phraseIndex}>
       {safePhrases[phraseIndex]}
     </div>
+  );
+}
+
+
+function BrandFooter({ variant = "" }) {
+  const className = ["footer", "brand-footer", variant].filter(Boolean).join(" ");
+
+  return (
+    <footer className={className}>
+      <div className="footer-brand-line">
+        Powered by <strong>BENTO PH</strong> | {TINA_BRAND.formalName}
+      </div>
+      <div
+        className="brand-disclosures"
+        aria-label="TINA independence and professional-use notices"
+      >
+        <p>{TINA_BRAND.nonAffiliation}</p>
+        <p>{TINA_BRAND.professionalUse}</p>
+      </div>
+    </footer>
   );
 }
 
@@ -1056,7 +1077,7 @@ function App() {
             <img className="brand-logo-small" src={TINA_LOGO_SRC} alt="TINA logo" />
             <div>
               <h1>TINA</h1>
-              <p>Tax Information Navigation Assistant</p>
+              <p>{TINA_BRAND.workspaceDescriptor}</p>
             </div>
           </div>
           <span className="auth-header-note">Secure professional workspace</span>
@@ -1068,11 +1089,8 @@ function App() {
               <img className="auth-logo" src={TINA_LOGO_SRC} alt="TINA logo" />
               <div>
                 <div className="message-label">Login</div>
-                <h2>Secure access to Philippine tax intelligence.</h2>
-                <p>
-                  Built for professional review, source-aware research, and
-                  authority-disciplined tax workflows.
-                </p>
+                <h2>{TINA_BRAND.positioning}</h2>
+                <p>TINA is the Philippine Tax Intelligence Platform for professional review, source-aware research, and authority-disciplined tax workflows.</p>
               </div>
             </div>
 
@@ -1141,8 +1159,8 @@ function App() {
                 <img className="auth-logo" src={TINA_LOGO_SRC} alt="TINA logo" />
                 <div>
                   <div className="message-label">Register</div>
-                  <h2>Create your TINA access.</h2>
-                  <p>Use your professional contact details for account setup.</p>
+                  <h2>Create your TINA workspace access.</h2>
+                  <p>Use your professional contact details for Philippine tax intelligence access.</p>
                 </div>
               </div>
 
@@ -1236,9 +1254,7 @@ function App() {
           </div>
         )}
 
-        <div className="footer auth-footer">
-          Powered by <strong>&nbsp;BENTO PH</strong>
-        </div>
+        <BrandFooter variant="auth-footer" />
       </div>
     );
   }
@@ -1250,7 +1266,7 @@ function App() {
           <img className="brand-logo-small" src={TINA_LOGO_SRC} alt="TINA logo" />
           <div>
             <h1>TINA</h1>
-            <p>Tax Information Navigation Assistant</p>
+            <p>{TINA_BRAND.workspaceDescriptor}</p>
           </div>
         </div>
 
@@ -1424,6 +1440,14 @@ function App() {
                 <li>Include facts, dates, tax type, and taxpayer context when available.</li>
                 <li>Use specific authority references when you have them.</li>
               </ul>
+            </section>
+
+            <section className="account-modal-section">
+              <h2>About TINA</h2>
+              <p>{TINA_BRAND.publicDescriptor}</p>
+              <p>{TINA_BRAND.positioning}</p>
+              <p>{TINA_BRAND.nonAffiliation}</p>
+              <p>{TINA_BRAND.professionalUse}</p>
             </section>
 
             <section className="account-modal-section">
@@ -1647,9 +1671,7 @@ function App() {
       </div>
       </main>
 
-      <footer className="footer">
-        Powered by <strong>&nbsp;BENTO PH</strong>
-      </footer>
+      <BrandFooter />
     </div>
   );
 }
