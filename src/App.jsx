@@ -9,10 +9,11 @@ import { getAuthorityTypeLabel } from "./lib/trustPresentation";
 import ReferencePanel from "./components/ReferencePanel";
 import SourceDocumentViewer from "./components/SourceDocumentViewer";
 
+// Temporary Preview integration only: this disposable branch must use the
+// corresponding disposable Render PR service, never the shared Preview or Production API.
 const API_BASE = (
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE ||
-  "https://tina-backend-y11x.onrender.com"
+  import.meta.env.VITE_RENDER_PREVIEW_API_URL ||
+  "https://tina-backend-pr-9.onrender.com"
 ).replace(/\/$/, "");
 
 const MAX_VISIBLE_SOURCES = 5;
