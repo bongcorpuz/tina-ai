@@ -1963,6 +1963,32 @@ a.source-chip:hover {
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
+/* Internal native-PDF fallback: uses only the authenticated local blob URL, never a Drive URL. */
+.source-document-native-wrap {
+  width: 100%;
+  min-height: min(62dvh, 720px);
+  display: grid;
+  grid-template-rows: auto minmax(420px, 1fr);
+  gap: 10px;
+}
+
+.source-document-native-note {
+  padding: 8px 10px;
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.source-document-native-pdf {
+  width: 100%;
+  min-height: 420px;
+  height: min(62dvh, 720px);
+  border: 1px solid var(--hairline-strong);
+  background: #ffffff;
+}
+
 .source-document-page canvas {
   max-width: none;
   height: auto !important;
@@ -2173,5 +2199,36 @@ a.source-chip:hover {
 
   .source-document-spinner {
     animation-duration: 1.6s;
+  }
+}
+
+/* Workspace height contract: the research conversation fills all remaining app height. */
+.app:has(.workspace-layout) {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.workspace-layout {
+  min-height: 0;
+  height: 100%;
+}
+
+.workspace-primary {
+  min-height: 0;
+}
+
+.workspace-primary .chat-container {
+  min-height: 0;
+}
+
+@media (max-width: 767px) {
+  .source-document-native-wrap {
+    min-height: min(70dvh, 680px);
+    grid-template-rows: auto minmax(360px, 1fr);
+  }
+
+  .source-document-native-pdf {
+    min-height: 360px;
+    height: min(70dvh, 680px);
   }
 }

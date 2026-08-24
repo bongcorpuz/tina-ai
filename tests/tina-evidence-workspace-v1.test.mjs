@@ -109,4 +109,19 @@ check(
   "existing Drive-backed source metadata resolves only to a canonical internal-viewer ID"
 );
 
+check(
+  viewer.includes('signature !== "%PDF-"') &&
+    viewer.includes("source-document-native-pdf") &&
+    viewer.includes("title={`${title} PDF preview`}") &&
+    !/drive\.google\.com|docs\.google\.com/.test(viewer),
+  "viewer verifies a local authenticated PDF and falls back to an internal native preview without a Drive URL"
+);
+
+check(
+  css.includes(".app:has(.workspace-layout)") &&
+    css.includes("grid-template-rows: auto minmax(0, 1fr) auto") &&
+    css.includes(".source-document-native-pdf"),
+  "workspace height contract and native PDF preview styles preserve answer space and in-panel document rendering"
+);
+
 console.log(`TINA Evidence Workspace V1 checks: ${assertions} assertions passed`);

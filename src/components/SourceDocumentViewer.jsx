@@ -137,6 +137,11 @@ export default function SourceDocumentViewer({
         }
 
         const documentBlob = await response.blob();
+        const signature = new TextDecoder().decode(await documentBlob.slice(0, 5).arrayBuffer());
+        if (signature !== "%PDF-") {
+          if (active) setLoadState("format-unavailable");
+          return;
+        }
         objectUrl = URL.createObjectURL(documentBlob);
 
         if (active) {
@@ -289,12 +294,15 @@ export default function SourceDocumentViewer({
                 file={documentUrl}
                 loading={null}
                 error={
-                  <div className="source-document-state source-document-unavailable">
-                    <span className="passage-unavailable-icon" aria-hidden="true">i</span>
-                    <div>
-                      <span className="reference-eyebrow">Document rendering unavailable</span>
-                      <p>TINA retrieved the document but could not render it in this workspace.</p>
+                  <div className="source-document-native-wrap">
+                    <div className="source-document-native-note">
+                      Enhanced page rendering is unavailable. The same authenticated PDF is shown below in TINA's secure native preview.
                     </div>
+                    <iframe
+                      className="source-document-native-pdf"
+                      src={documentUrl}
+                      title={`${title} PDF preview`}
+                    />
                   </div>
                 }
                 onLoadSuccess={({ numPages }) => {
