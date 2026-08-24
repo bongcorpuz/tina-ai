@@ -2232,3 +2232,20 @@ a.source-chip:hover {
     height: min(70dvh, 680px);
   }
 }
+
+/* TINA reply contrast: answer prose stays materially darker than supporting metadata. */
+.message-row.tina .message-markdown,
+.message-row.tina .message-markdown p,
+.message-row.tina .message-markdown li {
+  color: #111827;
+  font-weight: 500;
+}
+
+.message-row.tina .message-markdown em {
+  color: #334155;
+}
+
+.message-row.tina .message-markdown ::selection {
+  color: #ffffff;
+  background: #1e3a5f;
+}
