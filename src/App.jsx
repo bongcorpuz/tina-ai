@@ -6,6 +6,7 @@ import { loadChatHistory, saveChatHistory, clearChatHistory } from "./utils/chat
 import TrustBanner from "./components/TrustBanner";
 import SourceTrustSummary from "./components/SourceTrustSummary";
 import { getAuthorityTypeLabel } from "./lib/trustPresentation";
+import ReferencePanel from "./components/ReferencePanel";
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
@@ -421,9 +422,13 @@ function App() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [selectedReference, setSelectedReference] = useState(null);
+  const [selectedReferenceKey, setSelectedReferenceKey] = useState(null);
+  const isReferenceOpen = Boolean(selectedReference);
 
   const bottomRef = useRef(null);
   const composerRef = useRef(null);
+  const citationTriggerRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -449,6 +454,13 @@ function App() {
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key !== "Escape") return;
+      if (isReferenceOpen) {
+        event.preventDefault();
+        setSelectedReference(null);
+        setSelectedReferenceKey(null);
+        window.setTimeout(() => citationTriggerRef.current?.focus(), 0);
+        return;
+      }
       setShowProfileMenu(false);
       setShowProfileModal(false);
       setShowSettingsModal(false);
@@ -457,7 +469,7 @@ function App() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, []);
+  }, [isReferenceOpen]);
 
   async function createConversationWithToken(authToken) {
     const res = await fetch(`${API_BASE}/conversations`, {
@@ -1022,6 +1034,18 @@ function App() {
     }
   };
 
+  const openReference = (source, event, referenceKey) => {
+    citationTriggerRef.current = event.currentTarget;
+    setSelectedReference(source);
+    setSelectedReferenceKey(referenceKey || getSourceKey(source));
+  };
+
+  const closeReference = () => {
+    setSelectedReference(null);
+    setSelectedReferenceKey(null);
+    window.setTimeout(() => citationTriggerRef.current?.focus(), 0);
+  };
+
   const renderMessageContent = (msg) => {
     if (msg.role !== "tina") {
       return <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || ""}</div>;
@@ -1239,57 +1263,61 @@ function App() {
           <img className="brand-logo-small" src={TINA_LOGO_SRC} alt="TINA logo" />
           <div>
             <h1>TINA</h1>
-            <p>Tax Information Navigation Assistant</p>
+            <p>Tax intelligence</p>
           </div>
+          <span className="header-workspace-label">Evidence workspace</span>
         </div>
 
-        <div className="profile-wrapper">
-          <button
-            className="profile-button"
-            aria-expanded={showProfileMenu}
-            onClick={() => setShowProfileMenu(!showProfileMenu)}
-          >
-            {currentUser?.username || "User"} ▾
-          </button>
+        <div className="header-account-area">
+          <span className="header-attribution">by <strong>BENTO PH</strong></span>
+          <div className="profile-wrapper">
+            <button
+              className="profile-button"
+              aria-expanded={showProfileMenu}
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
+            >
+              {currentUser?.username || "User"} ▾
+            </button>
 
-          {showProfileMenu && (
-            <div className="profile-menu">
-              <button
-                onClick={() => {
-                  setShowProfileModal(true);
-                  setShowProfileMenu(false);
-                }}
-              >
-                Profile
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowSettingsModal(true);
-                  setShowProfileMenu(false);
-                }}
-              >
-                Settings
-              </button>
-
-              <button
-                onClick={() => {
-                  setShowHelpModal(true);
-                  setShowProfileMenu(false);
-                }}
-              >
-                Help
-              </button>
-
-              {role === "admin" && (
-                <button onClick={reindexDrive} disabled={indexing}>
-                  {indexing ? "Indexing..." : "Re-index"}
+            {showProfileMenu && (
+              <div className="profile-menu">
+                <button
+                  onClick={() => {
+                    setShowProfileModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  Profile
                 </button>
-              )}
 
-              <button onClick={logout}>Logout</button>
-            </div>
-          )}
+                <button
+                  onClick={() => {
+                    setShowSettingsModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  Settings
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowHelpModal(true);
+                    setShowProfileMenu(false);
+                  }}
+                >
+                  Help
+                </button>
+
+                {role === "admin" && (
+                  <button onClick={reindexDrive} disabled={indexing}>
+                    {indexing ? "Indexing..." : "Re-index"}
+                  </button>
+                )}
+
+                <button onClick={logout}>Logout</button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -1443,7 +1471,9 @@ function App() {
         </div>
       )}
 
-      <div className="chat-container">
+      <div className={`workspace-layout ${isReferenceOpen ? "reference-open" : ""}`}>
+        <div className="workspace-primary">
+          <div className="chat-container">
         {messages.map((msg, index) => {
           // Single visible source truth: prefer sourceCards (deduped, authority-ranked,
           // max-5 from backend) over sources. For /source messages, sourceCards is
@@ -1487,7 +1517,7 @@ function App() {
                   <EducationalSources data={msg.educationalSources} />
                 )}
 
-                {/* Normal mode: authority chips (clickable or non-clickable) */}
+                {/* Normal mode: authority citations select the in-app evidence reader. */}
                 {!isSourceMode && visibleSources.length > 0 && (
                   <div className="sources">
                     <strong>
@@ -1496,27 +1526,23 @@ function App() {
                     <div className="source-chips">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getAuthorityLabel(source);
-                        const href = getSourceHref(source);
                         const typeLabel = getAuthorityTypeLabel(source);
-                        return href ? (
-                          <a
-                            key={getSourceKey(source, sourceIndex)}
-                            className="source-chip"
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer noopener"
+                        const sourceKey = getSourceKey(source, sourceIndex);
+                        const isSelected = Boolean(
+                          selectedReference &&
+                          selectedReferenceKey === sourceKey
+                        );
+                        return (
+                          <button
+                            key={sourceKey}
+                            type="button"
+                            className={`source-chip ${isSelected ? "is-selected" : ""}`}
+                            onClick={(event) => openReference(source, event, sourceKey)}
+                            aria-pressed={isSelected}
                             title={typeLabel || undefined}
                           >
-                            {label}
-                          </a>
-                        ) : (
-                          <span
-                            key={getSourceKey(source, sourceIndex)}
-                            className="source-chip"
-                            title={typeLabel || undefined}
-                          >
-                            {label}
-                          </span>
+                            {label}<span className="citation-inspect-icon" aria-hidden="true">⌕</span>
+                          </button>
                         );
                       })}
                     </div>
@@ -1532,24 +1558,16 @@ function App() {
                     <div className="source-list">
                       {visibleSources.map((source, sourceIndex) => {
                         const label = getSourceLabel(source);
-                        const href = getSourceHref(source);
+                        const sourceKey = getSourceKey(source, sourceIndex);
                         return (
-                          <div
-                            key={getSourceKey(source, sourceIndex)}
+                          <button
+                            type="button"
+                            key={sourceKey}
                             className="source-list-item"
+                            onClick={(event) => openReference(source, event, sourceKey)}
                           >
-                            {href ? (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noreferrer noopener"
-                              >
-                                {label}
-                              </a>
-                            ) : (
-                              <span>{label}</span>
-                            )}
-                          </div>
+                            <span>{label}</span><span aria-hidden="true">⌕</span>
+                          </button>
                         );
                       })}
                     </div>
@@ -1587,10 +1605,10 @@ function App() {
         )}
 
         <div ref={bottomRef}></div>
-      </div>
+          </div>
 
-      <div className="input-container">
-        <div className="input-box">
+          <div className="input-container">
+            <div className="input-box">
           <textarea
             ref={composerRef}
             value={question}
@@ -1630,11 +1648,18 @@ function App() {
               </svg>
             )}
           </button>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="footer">
-        Powered by <strong>&nbsp;BENTO PH</strong>
+        <ReferencePanel
+          source={selectedReference}
+          isOpen={Boolean(selectedReference)}
+          onClose={closeReference}
+          getAuthorityLabel={getAuthorityLabel}
+          getSourceHref={getSourceHref}
+          getAuthorityTypeLabel={getAuthorityTypeLabel}
+        />
       </div>
     </div>
   );
