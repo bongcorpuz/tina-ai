@@ -124,4 +124,12 @@ check(
   "workspace height contract and native PDF preview styles preserve answer space and in-panel document rendering"
 );
 
+check(
+  css.includes(".message-row.tina .message-markdown strong") &&
+    css.includes("font-weight: 400;") &&
+    css.includes(".message-row.tina .message-markdown h1,") &&
+    css.includes("font-weight: 700;"),
+  "TINA answer body remains black and regular-weight while headings retain bold hierarchy"
+);
+
 console.log(`TINA Evidence Workspace V1 checks: ${assertions} assertions passed`);

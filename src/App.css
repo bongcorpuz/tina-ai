@@ -2238,7 +2238,20 @@ a.source-chip:hover {
 .message-row.tina .message-markdown p,
 .message-row.tina .message-markdown li {
   color: #111827;
-  font-weight: 500;
+  font-weight: 400;
+}
+
+.message-row.tina .message-markdown strong {
+  color: #111827;
+  font-weight: 400;
+}
+
+.message-row.tina .message-markdown h1,
+.message-row.tina .message-markdown h2,
+.message-row.tina .message-markdown h3,
+.message-row.tina .message-markdown h4 {
+  color: #111827;
+  font-weight: 700;
 }
 
 .message-row.tina .message-markdown em {
