@@ -132,4 +132,15 @@ check(
   "TINA answer body remains black and regular-weight while headings retain bold hierarchy"
 );
 
+check(
+  css.includes("TINA landing-aligned login") &&
+    css.includes("--auth-navy:#061326") &&
+    css.includes("--auth-cobalt:#2f69ff") &&
+    css.includes("--auth-display:Georgia") &&
+    css.includes("grid-template-columns:minmax(252px,.86fr)") &&
+    css.includes("@media (max-width:720px)") &&
+    css.includes(".auth-app .auth-password-toggle"),
+  "login inherits TINA landing visual language while preserving responsive password controls"
+);
+
 console.log(`TINA Evidence Workspace V1 checks: ${assertions} assertions passed`);
