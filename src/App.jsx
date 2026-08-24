@@ -7,6 +7,7 @@ import TrustBanner from "./components/TrustBanner";
 import SourceTrustSummary from "./components/SourceTrustSummary";
 import { getAuthorityTypeLabel } from "./lib/trustPresentation";
 import ReferencePanel from "./components/ReferencePanel";
+import SourceDocumentViewer from "./components/SourceDocumentViewer";
 
 const API_BASE = (
   import.meta.env.VITE_API_URL ||
@@ -72,6 +73,8 @@ function shouldHideSource(source = {}) {
 
 function getSourceKey(source = {}, index = 0) {
   return (
+    source.documentId ||
+    source.document_id ||
     source.fileId ||
     source.file_id ||
     source.driveViewUrl ||
@@ -86,6 +89,20 @@ function getSourceKey(source = {}, index = 0) {
   );
 }
 
+function getDocumentId(source = {}) {
+  return (
+    source.documentId ||
+    source.document_id ||
+    source.fileId ||
+    source.file_id ||
+    source.metadata?.documentId ||
+    source.metadata?.document_id ||
+    source.metadata?.fileId ||
+    source.metadata?.file_id ||
+    null
+  );
+}
+
 function getSourceLabel(source = {}) {
   return (
     source.title ||
@@ -93,20 +110,6 @@ function getSourceLabel(source = {}) {
     source.originalSource ||
     source.path ||
     "Untitled Source"
-  );
-}
-
-function getSourceHref(source = {}) {
-  return (
-    source.publicUrl       ||
-    source.public_url      ||
-    source.driveViewUrl    ||
-    source.drive_view_url  ||
-    source.driveDownloadUrl ||
-    source.drive_download_url ||
-    source.url             ||
-    source.href            ||
-    null
   );
 }
 
@@ -227,6 +230,15 @@ function normalizeFallbackReferences(rawFallbackReferences) {
   return Array.isArray(rawFallbackReferences)
     ? rawFallbackReferences.slice(0, 5)
     : [];
+}
+
+// Display-only normalization: suppress only a leading Markdown `Short Answer`
+// heading without mutating persisted message content or legitimate later headings.
+function suppressLeadingShortAnswerHeading(text = "") {
+  return String(text || "").replace(
+    /^\s{0,3}#{1,6}\s+(?:\*\*)?Short Answer(?:\*\*)?\s*(?:\r?\n)+/i,
+    ""
+  );
 }
 
 // Infer the originating command hook from a persisted message row.
@@ -424,7 +436,9 @@ function App() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [selectedReference, setSelectedReference] = useState(null);
   const [selectedReferenceKey, setSelectedReferenceKey] = useState(null);
+  const [viewerMode, setViewerMode] = useState("reference");
   const isReferenceOpen = Boolean(selectedReference);
+  const isDocumentOpen = isReferenceOpen && viewerMode === "document";
 
   const bottomRef = useRef(null);
   const composerRef = useRef(null);
@@ -456,6 +470,10 @@ function App() {
       if (event.key !== "Escape") return;
       if (isReferenceOpen) {
         event.preventDefault();
+        if (viewerMode === "document") {
+          setViewerMode("reference");
+          return;
+        }
         setSelectedReference(null);
         setSelectedReferenceKey(null);
         window.setTimeout(() => citationTriggerRef.current?.focus(), 0);
@@ -469,7 +487,7 @@ function App() {
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [isReferenceOpen]);
+  }, [isReferenceOpen, viewerMode]);
 
   async function createConversationWithToken(authToken) {
     const res = await fetch(`${API_BASE}/conversations`, {
@@ -1038,12 +1056,22 @@ function App() {
     citationTriggerRef.current = event.currentTarget;
     setSelectedReference(source);
     setSelectedReferenceKey(referenceKey || getSourceKey(source));
+    setViewerMode("reference");
   };
 
   const closeReference = () => {
     setSelectedReference(null);
     setSelectedReferenceKey(null);
+    setViewerMode("reference");
     window.setTimeout(() => citationTriggerRef.current?.focus(), 0);
+  };
+
+  const openSourceDocument = () => {
+    if (selectedReference) setViewerMode("document");
+  };
+
+  const returnToEvidence = () => {
+    setViewerMode("reference");
   };
 
   const renderMessageContent = (msg) => {
@@ -1051,7 +1079,9 @@ function App() {
       return <div style={{ whiteSpace: "pre-wrap" }}>{msg.content || ""}</div>;
     }
 
-    const cleanContent = stripInlineSourceBlock(msg.content || "");
+    const cleanContent = suppressLeadingShortAnswerHeading(
+      stripInlineSourceBlock(msg.content || "")
+    );
     return (
       <div className="message-markdown">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -1471,7 +1501,11 @@ function App() {
         </div>
       )}
 
-      <div className={`workspace-layout ${isReferenceOpen ? "reference-open" : ""}`}>
+      <div
+        className={`workspace-layout ${isReferenceOpen ? "reference-open" : ""} ${
+          isDocumentOpen ? "document-open" : ""
+        }`}
+      >
         <div className="workspace-primary">
           <div className="chat-container">
         {messages.map((msg, index) => {
@@ -1502,12 +1536,6 @@ function App() {
               key={index}
               className={`message-row ${msg.role === "user" ? "user" : "tina"}`}
             >
-              {msg.role === "tina" && (
-                <div className="tina-indicator" aria-hidden="true">
-                  <img src={TINA_LOGO_SRC} alt="TINA logo" />
-                </div>
-              )}
-
               <div className="message-box">
                 {renderMessageContent(msg)}
 
@@ -1595,9 +1623,6 @@ function App() {
             role="status"
             aria-label="TINA is typing"
           >
-            <div className="tina-indicator" aria-hidden="true">
-              <img src={TINA_LOGO_SRC} alt="TINA logo" />
-            </div>
             <div className="message-box">
               <TypingStatusIndicator isLoading={loading} />
             </div>
@@ -1654,10 +1679,23 @@ function App() {
 
         <ReferencePanel
           source={selectedReference}
-          isOpen={Boolean(selectedReference)}
+          isOpen={isReferenceOpen && !isDocumentOpen}
+          onClose={closeReference}
+          onViewDocument={openSourceDocument}
+          getAuthorityLabel={getAuthorityLabel}
+          getDocumentId={getDocumentId}
+          getAuthorityTypeLabel={getAuthorityTypeLabel}
+        />
+
+        <SourceDocumentViewer
+          source={selectedReference}
+          documentId={getDocumentId(selectedReference || {})}
+          isOpen={isDocumentOpen}
+          token={token}
+          apiBase={API_BASE}
+          onBackToEvidence={returnToEvidence}
           onClose={closeReference}
           getAuthorityLabel={getAuthorityLabel}
-          getSourceHref={getSourceHref}
           getAuthorityTypeLabel={getAuthorityTypeLabel}
         />
       </div>

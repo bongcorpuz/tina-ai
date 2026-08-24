@@ -13,6 +13,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
+    "react-pdf": "^10.5.0",
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {

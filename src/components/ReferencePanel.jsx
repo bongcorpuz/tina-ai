@@ -8,8 +8,9 @@ export default function ReferencePanel({
   source,
   isOpen,
   onClose,
+  onViewDocument,
   getAuthorityLabel,
-  getSourceHref,
+  getDocumentId,
   getAuthorityTypeLabel
 }) {
   const panelRef = useRef(null);
@@ -56,7 +57,7 @@ export default function ReferencePanel({
     source.citation ||
     source.reference ||
     null;
-  const sourceHref = getSourceHref(source);
+  const documentId = getDocumentId(source);
 
   return (
     <aside
@@ -119,18 +120,17 @@ export default function ReferencePanel({
           </div>
         </section>
 
-        {sourceHref ? (
-          <a
-            className="open-original-source"
-            href={sourceHref}
-            target="_blank"
-            rel="noreferrer noopener"
+        {documentId ? (
+          <button
+            className="open-source-document"
+            type="button"
+            onClick={onViewDocument}
           >
-            Open original source <span aria-hidden="true">↗</span>
-          </a>
+            View source document <span aria-hidden="true">→</span>
+          </button>
         ) : (
           <p className="reference-url-unavailable">
-            Original-source URL is not available in this source record.
+            Source document delivery is not available for this source record.
           </p>
         )}
       </div>
