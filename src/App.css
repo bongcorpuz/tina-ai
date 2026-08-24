@@ -2249,3 +2249,11 @@ a.source-chip:hover {
   color: #ffffff;
   background: #1e3a5f;
 }
+
+/* User prompt bubble: compact rounded reply marker, distinct from the evidence workspace. */
+.message-row.user .message-box {
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 18px;
+  line-height: 1.45;
+}
