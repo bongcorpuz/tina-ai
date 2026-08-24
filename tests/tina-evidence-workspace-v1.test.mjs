@@ -100,4 +100,13 @@ check(
   "reader and document-viewer motion both have reduced-motion treatment"
 );
 
+check(
+  app.includes("extractDriveDocumentIdFromLegacySource") &&
+    app.includes("validDocumentId") &&
+    app.includes("source.driveViewUrl") &&
+    app.includes("metadata.webViewLink") &&
+    viewer.includes("/sources/${encodeURIComponent(documentId)}/document"),
+  "existing Drive-backed source metadata resolves only to a canonical internal-viewer ID"
+);
+
 console.log(`TINA Evidence Workspace V1 checks: ${assertions} assertions passed`);

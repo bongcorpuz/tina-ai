@@ -90,18 +90,60 @@ function getSourceKey(source = {}, index = 0) {
   );
 }
 
+function validDocumentId(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^[A-Za-z0-9_-]{10,200}$/.test(text) ? text : null;
+}
+
+// Existing source records can carry a Drive-backed document as metadata from
+// prior indexing. Parse only a recognized Google host locally, retain only the
+// opaque ID, and send that ID to the authenticated internal viewer endpoint.
+function extractDriveDocumentIdFromLegacySource(value) {
+  if (typeof value !== "string" || !value.trim()) return null;
+
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      !["drive.google.com", "docs.google.com"].includes(url.hostname)
+    ) return null;
+
+    const queryId = validDocumentId(url.searchParams.get("id"));
+    if (queryId) return queryId;
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const markerIndex = parts.indexOf("d");
+    return markerIndex >= 0 ? validDocumentId(parts[markerIndex + 1]) : null;
+  } catch {
+    return null;
+  }
+}
+
 function getDocumentId(source = {}) {
-  return (
-    source.documentId ||
-    source.document_id ||
-    source.fileId ||
-    source.file_id ||
-    source.metadata?.documentId ||
-    source.metadata?.document_id ||
-    source.metadata?.fileId ||
-    source.metadata?.file_id ||
-    null
-  );
+  const metadata = source.metadata || {};
+  const explicitCandidates = [
+    source.documentId, source.document_id, source.fileId, source.file_id,
+    source.driveFileId, source.drive_file_id,
+    metadata.documentId, metadata.document_id, metadata.fileId, metadata.file_id,
+    metadata.driveFileId, metadata.drive_file_id
+  ];
+  for (const candidate of explicitCandidates) {
+    const documentId = validDocumentId(candidate);
+    if (documentId) return documentId;
+  }
+
+  const legacyUrlCandidates = [
+    source.driveViewUrl, source.drive_view_url, source.driveDownloadUrl, source.drive_download_url,
+    source.webViewLink, source.web_view_link, source.sourceUrl, source.source_url, source.url,
+    metadata.driveViewUrl, metadata.drive_view_url, metadata.driveDownloadUrl, metadata.drive_download_url,
+    metadata.webViewLink, metadata.web_view_link, metadata.sourceUrl, metadata.source_url, metadata.url
+  ];
+  for (const candidate of legacyUrlCandidates) {
+    const documentId = extractDriveDocumentIdFromLegacySource(candidate);
+    if (documentId) return documentId;
+  }
+
+  return null;
 }
 
 function getSourceLabel(source = {}) {
